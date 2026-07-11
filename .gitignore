@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+local.properties
+captures/
+
+# Kotlin
+.kotlin/
+
+# Signing & secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Real group data — never commit backups
+backups/
+*.backup.json
+badminton-backup-*.json
+
+# OS
+.DS_Store
+Thumbs.db
