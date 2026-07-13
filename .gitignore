@@ -18,7 +18,8 @@ captures/
 keystore.properties
 
 # Real group data — never commit backups
-backups/
+backups/*
+!backups/README.md
 *.backup.json
 badminton-backup-*.json
 
