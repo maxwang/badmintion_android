@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "badminton-ledger"
 include(":domain")
+include(":app")
