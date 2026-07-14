@@ -1,5 +1,7 @@
 package com.badmintonledger.app.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,8 +37,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.LedgerViewModel
+import com.badmintonledger.domain.backup.ImportResult
 import com.badmintonledger.domain.model.Member
 import com.badmintonledger.domain.model.centsToDollars
 import kotlinx.coroutines.launch
@@ -68,6 +72,27 @@ fun SettingsScreen(
             credit = dollarsText(it.defaultCredit.value)
         }
     }
+
+    val context = LocalContext.current
+    var pendingImport by remember { mutableStateOf<Pair<String, ImportResult.Summary>?>(null) }
+    val importPicker =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val text =
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                }.getOrNull()
+            if (text == null) {
+                scope.launch { snackbar.showSnackbar("Could not read the file") }
+                return@rememberLauncherForActivityResult
+            }
+            when (val result = vm.validateBackup(text)) {
+                is ImportResult.Ok -> pendingImport = text to result.summary
+                is ImportResult.Err -> scope.launch { snackbar.showSnackbar(result.reason) }
+            }
+        }
 
     Scaffold(
         topBar = {
@@ -176,7 +201,12 @@ fun SettingsScreen(
                 ) { Text("Save defaults") }
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            // Import (Task 7)
+            item { Text("Data", style = MaterialTheme.typography.titleMedium) }
+            item {
+                Button(onClick = { importPicker.launch(arrayOf("*/*")) }) {
+                    Text("Import backup")
+                }
+            }
         }
     }
 
@@ -220,6 +250,32 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    pendingImport?.let { (text, summary) ->
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("Import backup") },
+            text = {
+                Text(
+                    "This backup contains ${summary.members} members, " +
+                        "${summary.sessions} weekly records and ${summary.refills} refills. " +
+                        "Importing will replace ALL current data. Continue?",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.applyImport(text)
+                        pendingImport = null
+                        scope.launch { snackbar.showSnackbar("Import successful") }
+                    },
+                ) { Text("Import") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingImport = null }) { Text("Cancel") }
             },
         )
     }
