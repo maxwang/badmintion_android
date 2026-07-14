@@ -151,6 +151,28 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `rejects string-typed scalars`() {
+        assertIs<ImportResult.Err>(
+            BackupCodec.validate(
+                fixture(
+                    sessionsJson = """[{"id":"s1","date":"2026-07-04","hours":"4",
+                "rate":24,"factor":0.8,"playerIds":["A","G"]}]""",
+                ),
+            ),
+        )
+        assertIs<ImportResult.Err>(
+            BackupCodec.validate(
+                fixture(
+                    membersJson = """[
+                {"id":"A","name":"阿安","isGuest":"true"},
+                {"id":"G","name":"客串","isGuest":true}
+            ]""",
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `export file name`() {
         assertEquals("badminton-backup-2026-07-06.json", BackupCodec.exportFileName("2026-07-06"))
     }

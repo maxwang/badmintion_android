@@ -50,7 +50,7 @@ object BackupCodec {
     @Suppress("CyclomaticComplexMethod", "ComplexCondition", "LongMethod", "ReturnCount")
     fun validate(root: JsonElement): ImportResult {
         val obj = root as? JsonObject ?: return ImportResult.Err("Not a valid backup file")
-        if ((obj["version"] as? JsonPrimitive)?.intOrNull != 1) {
+        if ((obj["version"] as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull != 1) {
             return ImportResult.Err("Unsupported backup version")
         }
         val members = obj["members"] as? JsonArray ?: return ImportResult.Err("Backup is missing member data")
@@ -64,7 +64,7 @@ object BackupCodec {
             val mo = m as? JsonObject ?: return ImportResult.Err("Member data is incomplete")
             val id = mo.stringOrNull("id")
             val name = mo.stringOrNull("name")
-            val isGuest = (mo["isGuest"] as? JsonPrimitive)?.booleanOrNull
+            val isGuest = (mo["isGuest"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
             if (id.isNullOrEmpty() || name.isNullOrEmpty() || isGuest == null) {
                 return ImportResult.Err("Member data is incomplete")
             }
@@ -118,7 +118,7 @@ object BackupCodec {
     private fun JsonPrimitive.stringContentOrNull(): String? = if (isString) content else null
 
     private fun JsonObject.positive(key: String): Boolean =
-        (this[key] as? JsonPrimitive)?.doubleOrNull?.let { it.isFinite() && it > 0 } == true
+        (this[key] as? JsonPrimitive)?.takeIf { !it.isString }?.doubleOrNull?.let { it.isFinite() && it > 0 } == true
 
     private fun JsonObject.dateOk(key: String): Boolean = stringOrNull(key)?.matches(dateRe) == true
 }
