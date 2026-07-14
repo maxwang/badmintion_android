@@ -10,9 +10,9 @@ import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.Config
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.dollarsToCents
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.badmintonledger.domain.edit.addMember as domainAddMember
 import com.badmintonledger.domain.edit.removeMember as domainRemoveMember
@@ -22,8 +22,12 @@ import com.badmintonledger.domain.edit.setGuest as domainSetGuest
 class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     private val store = (app as LedgerApplication).store
 
-    val ledger: StateFlow<LedgerData?> =
-        store.data.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val _ledger = MutableStateFlow<LedgerData?>(null)
+    val ledger: StateFlow<LedgerData?> = _ledger
+
+    init {
+        viewModelScope.launch { _ledger.value = store.data.first() }
+    }
 
     private var idCounter = 0
 
@@ -32,7 +36,13 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         return "${prefix}_${System.currentTimeMillis()}_$idCounter"
     }
 
+    /**
+     * The in-memory document is authoritative for reads within this single-writer app:
+     * it is updated synchronously so back-to-back mutations always see the latest state,
+     * even before DataStore has finished (or started) persisting. DataStore is write-behind.
+     */
     private fun persist(data: LedgerData) {
+        _ledger.value = data
         viewModelScope.launch { store.save(data) }
     }
 
@@ -63,7 +73,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Returns null on success, or the refusal reason (member has records). */
     fun removeMember(id: String): String? {
-        val current = ledger.value ?: return null
+        val current = ledger.value ?: return "Data is still loading"
         return when (val r = domainRemoveMember(current, id)) {
             is EditResult.Ok -> {
                 persist(r.data)
@@ -86,7 +96,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         ) {
             return "Enter valid positive numbers"
         }
-        val current = ledger.value ?: return null
+        val current = ledger.value ?: return "Data is still loading"
         persist(
             current.copy(
                 config =
@@ -104,6 +114,6 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Replaces the whole document. Call only after validateBackup returned Ok. */
     fun applyImport(text: String) {
-        viewModelScope.launch { store.save(BackupCodec.decode(text)) }
+        persist(BackupCodec.decode(text))
     }
 }
