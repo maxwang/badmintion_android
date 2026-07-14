@@ -7,7 +7,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.badmintonledger.app.LedgerViewModel
 
-@Suppress("FunctionNaming")
 @Composable
 fun AppNav(vm: LedgerViewModel = viewModel()) {
     val nav = rememberNavController()
