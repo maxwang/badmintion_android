@@ -45,7 +45,7 @@ class PosterTest {
         val lines = weeklyPosterLines(buildWeeklyPayload(fixture(), "s1"))
 
         val title = assertIs<PosterLine.TextLine>(lines[0])
-        assertEquals("🏸 Badminton Weekly Settlement", title.text)
+        assertEquals("🏸 羽毛球周结算", title.text)
         assertEquals(44, title.size)
         assertEquals(true, title.bold)
         assertEquals(true, title.center)
@@ -56,32 +56,32 @@ class PosterTest {
         assertEquals(PosterColors.GRAY, date.color)
 
         val face = assertIs<PosterLine.TextLine>(lines[2])
-        assertEquals("4h × $24 = $96.00", face.text)
+        assertEquals("4小时 × $24 = $96.00", face.text)
         assertEquals(32, face.size)
 
         val real = assertIs<PosterLine.TextLine>(lines[3])
-        assertEquals("× factor 0.8 = paid $76.80", real.text)
+        assertEquals("× 折扣 0.8 = 实付 $76.80", real.text)
         assertEquals(true, real.bold)
         assertEquals(30, real.gap)
 
         val playersHeader = assertIs<PosterLine.TextLine>(lines[4])
-        assertEquals("Played this week (3)", playersHeader.text)
+        assertEquals("本周上场（3人）", playersHeader.text)
 
         // A: 1000.00 - 25.60 = left 974.40, green
         val rowA = assertIs<PosterLine.TextLine>(lines[5])
         assertEquals("阿安", rowA.text)
-        assertEquals("$1000.00 − $25.60 = left $974.40", rowA.right)
+        assertEquals("$1000.00 − $25.60 = 剩 $974.40", rowA.right)
         assertEquals(PosterColors.GREEN, rowA.rightColor)
 
         // G: 0.00 - 25.60 = owes 25.60, red
         val rowG = assertIs<PosterLine.TextLine>(lines[7])
         assertEquals("客串", rowG.text)
-        assertEquals("$0.00 − $25.60 = owes $25.60", rowG.right)
+        assertEquals("$0.00 − $25.60 = 欠 $25.60", rowG.right)
         assertEquals(PosterColors.RED, rowG.rightColor)
 
         // no non-player balances in this fixture -> straight to the pool line
         val pool = assertIs<PosterLine.TextLine>(lines[8])
-        assertEquals("Venue pool remaining: $2404.00", pool.text)
+        assertEquals("球馆额度剩余：$2404.00", pool.text)
         assertEquals(0, pool.gap)
         assertEquals(9, lines.size)
     }
@@ -107,14 +107,14 @@ class PosterTest {
         val lines = weeklyPosterLines(buildWeeklyPayload(data, "s2"))
         // G owed 25.60 before s2: before shows "owes $25.60", after "owes $37.60" (share 12.00)
         val rowG = lines.filterIsInstance<PosterLine.TextLine>().first { it.text == "客串" }
-        assertEquals("owes $25.60 − $12.00 = owes $37.60", rowG.right)
+        assertEquals("欠 $25.60 − $12.00 = 欠 $37.60", rowG.right)
 
         // D funded but never played -> balances section header + row
-        val header = lines.filterIsInstance<PosterLine.TextLine>().first { it.text == "Balances (didn't play)" }
+        val header = lines.filterIsInstance<PosterLine.TextLine>().first { it.text == "未上场成员余额" }
         assertEquals(PosterColors.GRAY, header.color)
         assertEquals(10, header.gap)
         val rowD = lines.filterIsInstance<PosterLine.TextLine>().first { it.text == "丁叔" }
-        assertEquals("left $500.00", rowD.right)
+        assertEquals("剩 $500.00", rowD.right)
         assertEquals(PosterColors.GREEN, rowD.rightColor)
     }
 
@@ -123,10 +123,10 @@ class PosterTest {
         val lines = monthlyPosterLines(buildMonthlyPayload(fixture(), "2026-07"))
 
         val title = assertIs<PosterLine.TextLine>(lines[0])
-        assertEquals("🏸 Badminton Monthly Report", title.text)
+        assertEquals("🏸 羽毛球月度报告", title.text)
 
         val subtitle = assertIs<PosterLine.TextLine>(lines[1])
-        assertEquals("2026-07 (1 session, total paid $76.80)", subtitle.text)
+        assertEquals("2026-07（1次活动，合计实付 $76.80）", subtitle.text)
 
         val header = assertIs<PosterLine.CellsLine>(lines[2])
         assertEquals(28, header.size)
@@ -134,10 +134,10 @@ class PosterTest {
         assertEquals(14, header.gap)
         assertEquals(
             listOf(
-                PosterCell("Member", 40, PosterAlign.LEFT),
-                PosterCell("Played", 300, PosterAlign.CENTER),
-                PosterCell("Share", 520, PosterAlign.RIGHT),
-                PosterCell("Balance", 710, PosterAlign.RIGHT),
+                PosterCell("成员", 40, PosterAlign.LEFT),
+                PosterCell("出场", 300, PosterAlign.CENTER),
+                PosterCell("应摊", 520, PosterAlign.RIGHT),
+                PosterCell("当前余额", 710, PosterAlign.RIGHT),
             ),
             header.cells,
         )
@@ -158,13 +158,13 @@ class PosterTest {
             rowA.cells,
         )
 
-        // G owes -> "owes $25.60" red
+        // G owes -> "欠 $25.60" red
         val rowG = lines.filterIsInstance<PosterLine.CellsLine>().first { it.cells[0].text == "客串" }
-        assertEquals("owes $25.60", rowG.cells[3].text)
+        assertEquals("欠 $25.60", rowG.cells[3].text)
         assertEquals(PosterColors.RED, rowG.cells[3].color)
 
         val pool = assertIs<PosterLine.TextLine>(lines.last())
-        assertEquals("Venue pool remaining: $2404.00", pool.text)
+        assertEquals("球馆额度剩余：$2404.00", pool.text)
         assertTrue(lines.size >= 6)
     }
 
@@ -179,6 +179,6 @@ class PosterTest {
             )
         val lines = weeklyPosterLines(buildWeeklyPayload(data, "s1"))
         val face = lines[2] as PosterLine.TextLine
-        assertEquals("4h × \$24.9 = \$99.60", face.text)
+        assertEquals("4小时 × \$24.9 = \$99.60", face.text)
     }
 }

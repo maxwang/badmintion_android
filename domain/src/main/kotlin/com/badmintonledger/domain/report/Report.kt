@@ -53,7 +53,7 @@ data class MonthlyPayload(
 fun memberName(
     data: LedgerData,
     id: String,
-): String = data.members.firstOrNull { it.id == id }?.name ?: "Unknown"
+): String = data.members.firstOrNull { it.id == id }?.name ?: "未知"
 
 // Balance section: non-zero balances only; excludeIds (this week's players, whose
 // after-balance is already in the breakdown) are not repeated.

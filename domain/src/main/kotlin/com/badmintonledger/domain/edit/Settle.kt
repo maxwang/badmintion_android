@@ -17,12 +17,12 @@ fun settleDebtors(
     date: String,
 ): EditResult<List<Payment>> {
     require(paymentIds.size == memberIds.size) { "one payment id per member" }
-    if (memberIds.isEmpty()) return EditResult.Err("Please select a member")
+    if (memberIds.isEmpty()) return EditResult.Err("请选择成员")
     var doc = data
     val created = mutableListOf<Payment>()
     for ((i, memberId) in memberIds.withIndex()) {
         val owedCents = -(memberBalancesCents(doc)[memberId] ?: 0L)
-        if (owedCents <= 0) return EditResult.Err("Nothing owing for the selected member")
+        if (owedCents <= 0) return EditResult.Err("该成员当前无欠款")
         when (val r = addPayment(doc, paymentIds[i], memberId, owedCents, date)) {
             is EditResult.Ok -> {
                 doc = r.data

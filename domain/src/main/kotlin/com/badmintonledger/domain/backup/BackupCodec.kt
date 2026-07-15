@@ -55,70 +55,70 @@ object BackupCodec {
             try {
                 json.parseToJsonElement(text)
             } catch (_: SerializationException) {
-                return ImportResult.Err("Not a valid backup file")
+                return ImportResult.Err("备份文件格式不正确")
             }
         return validate(root)
     }
 
     @Suppress("CyclomaticComplexMethod", "ComplexCondition", "LongMethod", "ReturnCount")
     fun validate(root: JsonElement): ImportResult {
-        val obj = root as? JsonObject ?: return ImportResult.Err("Not a valid backup file")
+        val obj = root as? JsonObject ?: return ImportResult.Err("备份文件格式不正确")
         if ((obj["version"] as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull != 1) {
-            return ImportResult.Err("Unsupported backup version")
+            return ImportResult.Err("备份文件版本不兼容")
         }
-        val members = obj["members"] as? JsonArray ?: return ImportResult.Err("Backup is missing member data")
-        val config = obj["config"] as? JsonObject ?: return ImportResult.Err("Backup is missing config data")
-        val refills = obj["refills"] as? JsonArray ?: return ImportResult.Err("Backup is missing refill data")
-        val payments = obj["payments"] as? JsonArray ?: return ImportResult.Err("Backup is missing payment data")
-        val sessions = obj["sessions"] as? JsonArray ?: return ImportResult.Err("Backup is missing session data")
+        val members = obj["members"] as? JsonArray ?: return ImportResult.Err("备份文件缺少成员数据")
+        val config = obj["config"] as? JsonObject ?: return ImportResult.Err("备份文件缺少配置数据")
+        val refills = obj["refills"] as? JsonArray ?: return ImportResult.Err("备份文件缺少充值数据")
+        val payments = obj["payments"] as? JsonArray ?: return ImportResult.Err("备份文件缺少收款数据")
+        val sessions = obj["sessions"] as? JsonArray ?: return ImportResult.Err("备份文件缺少周记录数据")
 
         val ids = mutableSetOf<String>()
         for (m in members) {
-            val mo = m as? JsonObject ?: return ImportResult.Err("Member data is incomplete")
+            val mo = m as? JsonObject ?: return ImportResult.Err("成员数据不完整")
             val id = mo.stringOrNull("id")
             val name = mo.stringOrNull("name")
             val isGuest = (mo["isGuest"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
             if (id.isNullOrEmpty() || name.isNullOrEmpty() || isGuest == null) {
-                return ImportResult.Err("Member data is incomplete")
+                return ImportResult.Err("成员数据不完整")
             }
-            if (!ids.add(id)) return ImportResult.Err("Member data is incomplete")
+            if (!ids.add(id)) return ImportResult.Err("成员数据不完整")
         }
         if (!config.positive("defaultRate") || !config.positive("defaultPaid") || !config.positive("defaultCredit")) {
-            return ImportResult.Err("Config data is incomplete")
+            return ImportResult.Err("配置数据不完整")
         }
         for (r in refills) {
-            val ro = r as? JsonObject ?: return ImportResult.Err("Refill data is incomplete")
+            val ro = r as? JsonObject ?: return ImportResult.Err("充值数据不完整")
             val contributions = ro["contributions"] as? JsonArray
             if (ro.stringOrNull("id").isNullOrEmpty() || !ro.dateOk("date") ||
                 !ro.positive("paid") || !ro.positive("credit") || contributions == null
             ) {
-                return ImportResult.Err("Refill data is incomplete")
+                return ImportResult.Err("充值数据不完整")
             }
             for (c in contributions) {
-                val co = c as? JsonObject ?: return ImportResult.Err("Refill data is incomplete")
-                if (!co.positive("amount")) return ImportResult.Err("Refill data is incomplete")
-                if (co.stringOrNull("memberId") !in ids) return ImportResult.Err("Backup references a missing member")
+                val co = c as? JsonObject ?: return ImportResult.Err("充值数据不完整")
+                if (!co.positive("amount")) return ImportResult.Err("充值数据不完整")
+                if (co.stringOrNull("memberId") !in ids) return ImportResult.Err("备份数据引用了不存在的成员")
             }
         }
         for (p in payments) {
-            val po = p as? JsonObject ?: return ImportResult.Err("Payment data is incomplete")
+            val po = p as? JsonObject ?: return ImportResult.Err("收款数据不完整")
             if (po.stringOrNull("id").isNullOrEmpty() || !po.dateOk("date") || !po.positive("amount")) {
-                return ImportResult.Err("Payment data is incomplete")
+                return ImportResult.Err("收款数据不完整")
             }
-            if (po.stringOrNull("memberId") !in ids) return ImportResult.Err("Backup references a missing member")
+            if (po.stringOrNull("memberId") !in ids) return ImportResult.Err("备份数据引用了不存在的成员")
         }
         for (s in sessions) {
-            val so = s as? JsonObject ?: return ImportResult.Err("Session data is incomplete")
+            val so = s as? JsonObject ?: return ImportResult.Err("周记录数据不完整")
             val playerIds = so["playerIds"] as? JsonArray
             if (so.stringOrNull("id").isNullOrEmpty() || !so.dateOk("date") ||
                 !so.positive("hours") || !so.positive("rate") || !so.positive("factor") ||
                 playerIds == null || playerIds.isEmpty()
             ) {
-                return ImportResult.Err("Session data is incomplete")
+                return ImportResult.Err("周记录数据不完整")
             }
             for (pid in playerIds) {
                 if ((pid as? JsonPrimitive)?.stringContentOrNull() !in ids) {
-                    return ImportResult.Err("Backup references a missing member")
+                    return ImportResult.Err("备份数据引用了不存在的成员")
                 }
             }
         }

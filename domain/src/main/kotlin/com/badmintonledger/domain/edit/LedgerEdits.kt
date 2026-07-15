@@ -21,13 +21,13 @@ fun addRefill(
     contributions: List<Contribution>,
 ): EditResult<Refill> {
     if (!isPositive(paidCents) || !isPositive(creditCents)) {
-        return EditResult.Err("Paid and credit amounts must be positive")
+        return EditResult.Err("实付与到账额度需为正数")
     }
     if (contributions.any { it.memberId.isEmpty() || it.amount.value <= 0 }) {
-        return EditResult.Err("Contribution amounts must be positive")
+        return EditResult.Err("出资金额需为正数")
     }
     if (contributions.sumOf { it.amount.value } != paidCents) {
-        return EditResult.Err("Contributions must add up to the paid amount")
+        return EditResult.Err("出资合计需等于实付金额")
     }
     val r = Refill(id, date, Cents(paidCents!!), Cents(creditCents!!), contributions)
     return EditResult.Ok(data.copy(refills = data.refills + r), r)
@@ -41,8 +41,8 @@ fun addPayment(
     amountCents: Long?,
     date: String,
 ): EditResult<Payment> {
-    if (memberId.isEmpty()) return EditResult.Err("Please select a member")
-    if (!isPositive(amountCents)) return EditResult.Err("Amount must be positive")
+    if (memberId.isEmpty()) return EditResult.Err("请选择成员")
+    if (!isPositive(amountCents)) return EditResult.Err("金额需为正数")
     val p = Payment(id, memberId, Cents(amountCents!!), date)
     return EditResult.Ok(data.copy(payments = data.payments + p), p)
 }
@@ -55,10 +55,10 @@ private fun validSessionFields(
     playerIds: List<String>?,
     checkAll: Boolean,
 ): String? {
-    if ((checkAll || hours != null) && !isPositive(hours)) return "Hours must be a positive number"
-    if ((checkAll || rateCents != null) && !isPositive(rateCents)) return "Rate must be a positive number"
-    if ((checkAll || factor != null) && !isPositive(factor)) return "Factor must be a positive number"
-    if ((checkAll || playerIds != null) && playerIds.isNullOrEmpty()) return "Select at least one player"
+    if ((checkAll || hours != null) && !isPositive(hours)) return "小时数需为正数"
+    if ((checkAll || rateCents != null) && !isPositive(rateCents)) return "单价需为正数"
+    if ((checkAll || factor != null) && !isPositive(factor)) return "折扣系数需为正数"
+    if ((checkAll || playerIds != null) && playerIds.isNullOrEmpty()) return "至少选择一名上场成员"
     return null
 }
 
@@ -75,7 +75,7 @@ fun addSession(
     validSessionFields(hours, rateCents, factor, playerIds, checkAll = true)
         ?.let { return EditResult.Err(it) }
     if (findSessionInWeek(data, date) != null) {
-        return EditResult.Err("This week already has a record — edit the existing one")
+        return EditResult.Err("该周已有记录，请编辑原记录")
     }
     val s = Session(id, date, hours!!, Cents(rateCents!!), factor!!, playerIds)
     return EditResult.Ok(data.copy(sessions = data.sessions + s), s)
@@ -95,11 +95,11 @@ fun updateSession(
     id: String,
     update: SessionUpdate,
 ): EditResult<Session> {
-    val s = data.sessions.firstOrNull { it.id == id } ?: return EditResult.Err("Record not found")
+    val s = data.sessions.firstOrNull { it.id == id } ?: return EditResult.Err("记录不存在")
     validSessionFields(update.hours, update.rateCents, update.factor, update.playerIds, checkAll = false)
         ?.let { return EditResult.Err(it) }
     if (update.date != null && findSessionInWeek(data, update.date, id) != null) {
-        return EditResult.Err("Another record already exists in the target week")
+        return EditResult.Err("目标周已有另一条记录")
     }
     val updated =
         s.copy(
