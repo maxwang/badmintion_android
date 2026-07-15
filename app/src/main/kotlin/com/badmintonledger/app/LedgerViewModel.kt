@@ -6,19 +6,27 @@ import androidx.lifecycle.viewModelScope
 import com.badmintonledger.domain.backup.BackupCodec
 import com.badmintonledger.domain.backup.ImportResult
 import com.badmintonledger.domain.edit.EditResult
+import com.badmintonledger.domain.edit.SessionUpdate
 import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.Config
+import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
+import com.badmintonledger.domain.model.Member
 import com.badmintonledger.domain.model.dollarsToCents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.badmintonledger.domain.edit.addMember as domainAddMember
+import com.badmintonledger.domain.edit.addRefill as domainAddRefill
+import com.badmintonledger.domain.edit.addSession as domainAddSession
 import com.badmintonledger.domain.edit.removeMember as domainRemoveMember
 import com.badmintonledger.domain.edit.renameMember as domainRenameMember
 import com.badmintonledger.domain.edit.setGuest as domainSetGuest
+import com.badmintonledger.domain.edit.settleDebtors as domainSettleDebtors
+import com.badmintonledger.domain.edit.updateSession as domainUpdateSession
 
+@Suppress("TooManyFunctions")
 class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     private val store = (app as LedgerApplication).store
 
@@ -26,7 +34,9 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     val ledger: StateFlow<LedgerData?> = _ledger
 
     init {
-        viewModelScope.launch { _ledger.value = store.data.first() }
+        // compareAndSet: a mutation that lands before the first DataStore emission must not
+        // be clobbered by the (stale) loaded document.
+        viewModelScope.launch { _ledger.compareAndSet(null, store.data.first()) }
     }
 
     private var idCounter = 0
@@ -108,6 +118,87 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
             ),
         )
         return null
+    }
+
+    /** Creates this week's record or edits [editId]. Returns null on success, or the refusal reason. */
+    @Suppress("LongParameterList")
+    fun saveSession(
+        editId: String?,
+        date: String,
+        hours: Double?,
+        rateDollars: Double?,
+        factor: Double?,
+        playerIds: List<String>,
+    ): String? {
+        val current = ledger.value ?: return "Data is still loading"
+        val rateCents = rateDollars?.let(::dollarsToCents)
+        val result =
+            if (editId == null) {
+                domainAddSession(current, newId("s"), date, hours, rateCents, factor, playerIds)
+            } else {
+                domainUpdateSession(current, editId, SessionUpdate(date, hours, rateCents, factor, playerIds))
+            }
+        return when (result) {
+            is EditResult.Ok -> {
+                persist(result.data)
+                null
+            }
+            is EditResult.Err -> result.reason
+        }
+    }
+
+    /** Returns null on success, or the refusal reason. Amounts arrive in dollars from the form. */
+    fun addRefill(
+        date: String,
+        paidDollars: Double?,
+        creditDollars: Double?,
+        contributionsDollars: List<Pair<String, Double>>,
+    ): String? {
+        val current = ledger.value ?: return "Data is still loading"
+        val contributions =
+            contributionsDollars.map { (memberId, dollars) -> Contribution(memberId, Cents(dollarsToCents(dollars))) }
+        val result =
+            domainAddRefill(
+                current,
+                newId("r"),
+                date,
+                paidDollars?.let(::dollarsToCents),
+                creditDollars?.let(::dollarsToCents),
+                contributions,
+            )
+        return when (result) {
+            is EditResult.Ok -> {
+                persist(result.data)
+                null
+            }
+            is EditResult.Err -> result.reason
+        }
+    }
+
+    /** Records one full-debt payment per selected member. Returns null on success. */
+    fun settleDebtors(
+        memberIds: List<String>,
+        date: String,
+    ): String? {
+        val current = ledger.value ?: return "Data is still loading"
+        return when (val r = domainSettleDebtors(current, memberIds, memberIds.map { newId("p") }, date)) {
+            is EditResult.Ok -> {
+                persist(r.data)
+                null
+            }
+            is EditResult.Err -> r.reason
+        }
+    }
+
+    /** Adds a guest member and returns it (so the caller can auto-select), or null when the name is blank. */
+    @Suppress("ReturnCount")
+    fun addGuest(name: String): Member? {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return null
+        val current = ledger.value ?: return null
+        val r = domainAddMember(current, newId("m"), trimmed, isGuest = true)
+        persist(r.data)
+        return r.value
     }
 
     fun validateBackup(text: String): ImportResult = BackupCodec.validate(text)
