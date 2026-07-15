@@ -27,4 +27,4 @@ Native Android rebuild of the badminton cost-sharing WeChat mini program. Owner:
 
 - Branch: `main` + short-lived feature branches. Conventional commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
 - Specs in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, named `YYYY-MM-DD-<topic>.md`.
-- UI copy is English (the group is in Australia); money formatted as `$X.XX`.
+- UI copy is Chinese, taken verbatim from the WeChat mini program wherever a counterpart string exists (error reasons, poster lines, labels); money formatted as `$X.XX`.
