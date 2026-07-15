@@ -105,15 +105,13 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Returns null on success, or an error message. All three must be positive. */
+    /** Returns null on success, or an error message. Both must be positive. */
     @Suppress("ReturnCount", "ComplexCondition")
     fun saveConfig(
-        rateDollars: Double?,
         paidDollars: Double?,
         creditDollars: Double?,
     ): String? {
-        if (rateDollars == null || !rateDollars.isFinite() || rateDollars <= 0 ||
-            paidDollars == null || !paidDollars.isFinite() || paidDollars <= 0 ||
+        if (paidDollars == null || !paidDollars.isFinite() || paidDollars <= 0 ||
             creditDollars == null || !creditDollars.isFinite() || creditDollars <= 0
         ) {
             return "请输入有效的正数"
@@ -123,7 +121,6 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
             current.copy(
                 config =
                     Config(
-                        defaultRate = Cents(dollarsToCents(rateDollars)),
                         defaultPaid = Cents(dollarsToCents(paidDollars)),
                         defaultCredit = Cents(dollarsToCents(creditDollars)),
                     ),

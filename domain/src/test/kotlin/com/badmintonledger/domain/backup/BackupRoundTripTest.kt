@@ -2,6 +2,7 @@ package com.badmintonledger.domain.backup
 
 import com.badmintonledger.domain.calc.memberBalancesCents
 import com.badmintonledger.domain.calc.poolRemainingCents
+import com.badmintonledger.domain.model.Cents
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -30,6 +31,8 @@ class BackupRoundTripTest {
     fun `import compute re-export preserves the ledger`() {
         assertIs<ImportResult.Ok>(BackupCodec.validate(backupJson))
         val data = BackupCodec.decode(backupJson)
+        assertEquals(2, data.version)
+        assertEquals(Cents(2400), data.rates.single().rate)
 
         // session 76.80 split two ways = 38.40 each
         val bal = memberBalancesCents(data)

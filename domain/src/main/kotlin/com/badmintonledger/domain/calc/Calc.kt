@@ -1,5 +1,6 @@
 package com.badmintonledger.domain.calc
 
+import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Session
 import kotlin.math.round
@@ -83,3 +84,13 @@ fun hasContributed(
     data: LedgerData,
     memberId: String,
 ): Boolean = data.refills.any { r -> r.contributions.any { it.memberId == memberId && it.amount.value > 0 } }
+
+// 按日期取历史单价：找 date <= dateStr 中日期最晚的一条；早于最早记录时取最早一条
+fun currentRate(
+    data: LedgerData,
+    dateStr: String,
+): Cents {
+    val eligible = data.rates.filter { it.date <= dateStr }
+    val hit = eligible.maxByOrNull { it.date } ?: data.rates.minByOrNull { it.date }
+    return checkNotNull(hit) { "rates is never empty" }.rate
+}

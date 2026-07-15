@@ -65,12 +65,10 @@ fun SettingsScreen(
     var renameTarget by remember { mutableStateOf<Member?>(null) }
     var deleteTarget by remember { mutableStateOf<Member?>(null) }
 
-    var rate by remember { mutableStateOf("") }
     var paid by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf("") }
     LaunchedEffect(data?.config) {
         data?.config?.let {
-            rate = dollarsText(it.defaultRate.value)
             paid = dollarsText(it.defaultPaid.value)
             credit = dollarsText(it.defaultCredit.value)
         }
@@ -159,16 +157,7 @@ fun SettingsScreen(
                 }
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { Text("默认参数", style = MaterialTheme.typography.titleMedium) }
-            item {
-                OutlinedTextField(
-                    value = rate,
-                    onValueChange = { rate = it },
-                    label = { Text("默认单价（$/小时）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-            }
+            item { Text("默认充值参数", style = MaterialTheme.typography.titleMedium) }
             item {
                 OutlinedTextField(
                     value = paid,
@@ -192,7 +181,6 @@ fun SettingsScreen(
                     onClick = {
                         val err =
                             vm.saveConfig(
-                                rate.toDoubleOrNull(),
                                 paid.toDoubleOrNull(),
                                 credit.toDoubleOrNull(),
                             )

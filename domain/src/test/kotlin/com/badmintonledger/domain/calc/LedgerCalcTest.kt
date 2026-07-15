@@ -5,6 +5,7 @@ import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
 import com.badmintonledger.domain.model.Payment
+import com.badmintonledger.domain.model.RateChange
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
 import kotlin.test.Test
@@ -183,5 +184,22 @@ class LedgerCalcTest {
         val excl = memberBalancesCents(data, "s2")
         assertEquals(10000L - 960, excl["A"])
         assertEquals(-960L, excl["B"])
+    }
+
+    @Test
+    fun `current rate by date - exact, between, before and after all entries`() {
+        val data =
+            LedgerData(
+                rates =
+                    listOf(
+                        RateChange("rt1", "2026-01-01", Cents(2400)),
+                        RateChange("rt2", "2026-06-01", Cents(2600)),
+                    ),
+            )
+        assertEquals(Cents(2400), currentRate(data, "2026-01-01"))
+        assertEquals(Cents(2400), currentRate(data, "2026-03-15"))
+        assertEquals(Cents(2600), currentRate(data, "2026-06-01"))
+        assertEquals(Cents(2600), currentRate(data, "2026-12-31"))
+        assertEquals(Cents(2400), currentRate(data, "2025-01-01"))
     }
 }

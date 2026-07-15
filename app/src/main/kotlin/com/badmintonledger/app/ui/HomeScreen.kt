@@ -32,6 +32,7 @@ import com.badmintonledger.app.LedgerViewModel
 import com.badmintonledger.app.ui.components.MemberBalanceRow
 import com.badmintonledger.app.ui.components.PoolCard
 import com.badmintonledger.domain.report.buildHomeSummary
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Suppress("LongMethod", "LongParameterList")
@@ -65,7 +66,8 @@ fun HomeScreen(
             }
             return@Scaffold
         }
-        val summary = remember(current) { buildHomeSummary(current) }
+        val today = remember { LocalDate.now().toString() }
+        val summary = remember(current) { buildHomeSummary(current, today) }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

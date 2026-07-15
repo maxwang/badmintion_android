@@ -44,6 +44,7 @@ import com.badmintonledger.app.LedgerViewModel
 import com.badmintonledger.app.SaveSessionResult
 import com.badmintonledger.app.ui.components.DateField
 import com.badmintonledger.domain.calc.currentFactor
+import com.badmintonledger.domain.calc.currentRate
 import com.badmintonledger.domain.edit.findSessionInWeek
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.dollarsToCents
@@ -118,7 +119,12 @@ fun SessionScreen(
             DateField(
                 label = "日期",
                 value = date,
-                onChange = { date = it },
+                onChange = { newDate ->
+                    date = newDate
+                    if (editId == null) {
+                        rate = dollarsText(currentRate(current, newDate).value)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             )
             OutlinedTextField(
@@ -245,7 +251,7 @@ private suspend fun applyExistingSessionToForm(
             findSessionInWeek(current, LocalDate.now().toString())
         }
     if (existing == null) {
-        fields.rate.value = dollarsText(current.config.defaultRate.value)
+        fields.rate.value = dollarsText(currentRate(current, LocalDate.now().toString()).value)
         fields.factor.value = factorText(currentFactor(current))
         return
     }
