@@ -1,5 +1,6 @@
 package com.badmintonledger.domain.model
 
+import com.badmintonledger.domain.backup.BackupCodec
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,12 +9,13 @@ class LedgerDataJsonTest {
     private val backupJson =
         """
         {
-          "version": 1,
+          "version": 2,
           "members": [
             { "id": "A", "name": "阿安", "isGuest": false },
             { "id": "G", "name": "客串", "isGuest": true }
           ],
-          "config": { "defaultRate": 24, "defaultPaid": 2000, "defaultCredit": 2500 },
+          "config": { "defaultPaid": 2000, "defaultCredit": 2500 },
+          "rates": [{ "id": "rt1", "date": "2026-01-01", "rate": 24 }],
           "refills": [{
             "id": "r1", "date": "2026-07-01", "paid": 600, "credit": 750,
             "contributions": [{ "memberId": "A", "amount": 600 }]
@@ -26,9 +28,9 @@ class LedgerDataJsonTest {
 
     @Test
     fun `backup JSON decodes with dollar amounts becoming cents`() {
-        val data = Json.decodeFromString<LedgerData>(backupJson)
-        assertEquals(1, data.version)
-        assertEquals(Cents(2400), data.config.defaultRate)
+        val data = BackupCodec.decode(backupJson)
+        assertEquals(2, data.version)
+        assertEquals(listOf(RateChange("rt1", "2026-01-01", Cents(2400))), data.rates)
         assertEquals(Cents(60000), data.refills[0].contributions[0].amount)
         assertEquals(Cents(75000), data.refills[0].credit)
         assertEquals(Cents(2560), data.payments[0].amount)
@@ -40,18 +42,28 @@ class LedgerDataJsonTest {
 
     @Test
     fun `round trip preserves the document exactly`() {
-        val data = Json.decodeFromString<LedgerData>(backupJson)
+        val data = BackupCodec.decode(backupJson)
         val reparsed = Json.decodeFromString<LedgerData>(Json.encodeToString(LedgerData.serializer(), data))
         assertEquals(data, reparsed)
     }
 
     @Test
-    fun `default LedgerData matches WeChat DEFAULT_DATA`() {
+    fun `default LedgerData matches WeChat DEFAULT_DATA v2`() {
         val d = LedgerData()
-        assertEquals(1, d.version)
-        assertEquals(Cents(2400), d.config.defaultRate)
-        assertEquals(Cents(200000), d.config.defaultPaid)
-        assertEquals(Cents(250000), d.config.defaultCredit)
+        assertEquals(2, d.version)
+        assertEquals(Config(Cents(200000), Cents(250000)), d.config)
+        assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), d.rates)
         assertEquals(emptyList(), d.members)
+    }
+
+    @Test
+    fun `v1 document decodes through migration keeping ITS rate, not the default`() {
+        val v1 =
+            """{"version":1,"members":[],"config":{"defaultRate":30,"defaultPaid":2000,
+            "defaultCredit":2500},"refills":[],"payments":[],"sessions":[]}"""
+        val d = BackupCodec.decode(v1)
+        assertEquals(2, d.version)
+        assertEquals(Config(Cents(200000), Cents(250000)), d.config)
+        assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(3000))), d.rates)
     }
 }

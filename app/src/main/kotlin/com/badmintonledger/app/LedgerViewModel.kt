@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.badmintonledger.domain.edit.addMember as domainAddMember
+import com.badmintonledger.domain.edit.addRateChange as domainAddRateChange
 import com.badmintonledger.domain.edit.addRefill as domainAddRefill
 import com.badmintonledger.domain.edit.addSession as domainAddSession
 import com.badmintonledger.domain.edit.deletePayment as domainDeletePayment
@@ -105,15 +106,13 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Returns null on success, or an error message. All three must be positive. */
+    /** Returns null on success, or an error message. Both must be positive. */
     @Suppress("ReturnCount", "ComplexCondition")
     fun saveConfig(
-        rateDollars: Double?,
         paidDollars: Double?,
         creditDollars: Double?,
     ): String? {
-        if (rateDollars == null || !rateDollars.isFinite() || rateDollars <= 0 ||
-            paidDollars == null || !paidDollars.isFinite() || paidDollars <= 0 ||
+        if (paidDollars == null || !paidDollars.isFinite() || paidDollars <= 0 ||
             creditDollars == null || !creditDollars.isFinite() || creditDollars <= 0
         ) {
             return "请输入有效的正数"
@@ -123,13 +122,27 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
             current.copy(
                 config =
                     Config(
-                        defaultRate = Cents(dollarsToCents(rateDollars)),
                         defaultPaid = Cents(dollarsToCents(paidDollars)),
                         defaultCredit = Cents(dollarsToCents(creditDollars)),
                     ),
             ),
         )
         return null
+    }
+
+    /** Returns null on success, or the refusal reason. Amount arrives in dollars from the form. */
+    fun addRateChange(
+        date: String,
+        rateDollars: Double?,
+    ): String? {
+        val current = ledger.value ?: return "数据加载中，请稍后再试"
+        return when (val r = domainAddRateChange(current, newId("rate"), date, rateDollars)) {
+            is EditResult.Ok -> {
+                persist(r.data)
+                null
+            }
+            is EditResult.Err -> r.reason
+        }
     }
 
     /** Creates this week's record or edits [editId]. Returns the saved session id on success, or the refusal reason. */
@@ -250,6 +263,10 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     fun deletePayment(id: String) {
         val current = ledger.value ?: return
         persist(domainDeletePayment(current, id))
+    }
+
+    fun resetAllData() {
+        persist(LedgerData())
     }
 }
 

@@ -45,7 +45,7 @@ class HomeTest {
 
     @Test
     fun `rows hide zero-balance members who never funded, keep funded and owing ones`() {
-        val s = buildHomeSummary(fixture())
+        val s = buildHomeSummary(fixture(), "2026-07-15")
         assertEquals(listOf("A", "C", "G"), s.rows.map { it.id })
         assertEquals(HomeRow("A", "阿安", false, owes = false, absDollars = "574.40"), s.rows[0])
         assertEquals(HomeRow("C", "陈叔", false, owes = false, absDollars = "800.00"), s.rows[1])
@@ -55,7 +55,7 @@ class HomeTest {
 
     @Test
     fun `pool remaining and warning threshold - strictly below 4h at default rate`() {
-        val s = buildHomeSummary(fixture())
+        val s = buildHomeSummary(fixture(), "2026-07-15")
         // pool = 1750.00 - face 96.00 = 1654.00; threshold 4h x $24 = 96.00 -> no warning
         assertEquals("1654.00", s.poolDollars)
         assertEquals(false, s.poolWarn)
@@ -77,7 +77,7 @@ class HomeTest {
                         ),
                     ),
             )
-        assertEquals(false, buildHomeSummary(atThreshold).poolWarn)
+        assertEquals(false, buildHomeSummary(atThreshold, "2026-07-15").poolWarn)
 
         // one cent below the threshold: warn
         val belowThreshold =
@@ -96,12 +96,12 @@ class HomeTest {
                         ),
                     ),
             )
-        assertEquals(true, buildHomeSummary(belowThreshold).poolWarn)
+        assertEquals(true, buildHomeSummary(belowThreshold, "2026-07-15").poolWarn)
     }
 
     @Test
     fun `empty ledger - empty flag and default pool`() {
-        val s = buildHomeSummary(LedgerData())
+        val s = buildHomeSummary(LedgerData(), "2026-07-15")
         assertEquals(true, s.empty)
         assertEquals(emptyList(), s.rows)
         assertEquals("0.00", s.poolDollars)

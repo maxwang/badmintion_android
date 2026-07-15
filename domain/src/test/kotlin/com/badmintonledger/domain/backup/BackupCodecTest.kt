@@ -1,6 +1,8 @@
 package com.badmintonledger.domain.backup
 
+import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
+import com.badmintonledger.domain.model.RateChange
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -22,6 +24,18 @@ private fun fixture(
 ): String =
     """{"version":$version,"members":$membersJson,"config":$configJson,
         "refills":$refillsJson,"payments":$paymentsJson,"sessions":$sessionsJson}"""
+
+private fun fixtureV2(ratesJson: String = """[{"id":"rt1","date":"2026-01-01","rate":24}]"""): String =
+    """{"version":2,"members":[
+        {"id":"A","name":"阿安","isGuest":false},
+        {"id":"G","name":"客串","isGuest":true}
+    ],"config":{"defaultPaid":2000,"defaultCredit":2500},
+    "rates":$ratesJson,
+    "refills":[{"id":"r1","date":"2026-07-01","paid":600,"credit":750,
+        "contributions":[{"memberId":"A","amount":600}]}],
+    "payments":[{"id":"p1","memberId":"G","amount":25.6,"date":"2026-07-05"}],
+    "sessions":[{"id":"s1","date":"2026-07-04","hours":4,"rate":24,
+        "factor":0.8,"playerIds":["A","G"]}]}"""
 
 class BackupCodecTest {
     @Test
@@ -51,6 +65,12 @@ class BackupCodecTest {
         assertIs<ImportResult.Err>(BackupCodec.validate("not json at all"))
         assertEquals(
             ImportResult.Err("备份文件版本不兼容"),
+            BackupCodec.validate(fixture(version = "3")),
+        )
+        // fixture() is a v1 shape (no "rates" key); version 2 alone doesn't fail, but the
+        // missing rate history does.
+        assertEquals(
+            ImportResult.Err("单价历史数据不完整"),
             BackupCodec.validate(fixture(version = "2")),
         )
     }
@@ -192,5 +212,36 @@ class BackupCodecTest {
         assertTrue(pretty.contains("\n  \"version\""))
         assertIs<ImportResult.Ok>(BackupCodec.validate(pretty))
         assertEquals(data, BackupCodec.decode(pretty))
+    }
+
+    @Test
+    fun `v2 backup passes, broken rate history rejected`() {
+        val ok = BackupCodec.validate(fixtureV2())
+        assertEquals(ImportResult.Ok::class, ok::class)
+        assertEquals(
+            ImportResult.Summary(members = 2, sessions = 1, refills = 1),
+            (ok as ImportResult.Ok).summary,
+        )
+        assertEquals(
+            ImportResult.Err("单价历史数据不完整"),
+            BackupCodec.validate(fixtureV2(ratesJson = "[]")),
+        )
+        assertIs<ImportResult.Err>(
+            BackupCodec.validate(fixtureV2(ratesJson = """[{"id":"rt1","date":"2026-01-01","rate":-1}]""")),
+        )
+        assertIs<ImportResult.Err>(
+            BackupCodec.validate(fixtureV2(ratesJson = """[{"id":"rt1","date":"07/01/2026","rate":24}]""")),
+        )
+    }
+
+    @Test
+    fun `v1 import migrates and re-exports as v2`() {
+        val r = BackupCodec.validate(fixture()) // v1 fixture
+        assertIs<ImportResult.Ok>(r)
+        assertEquals(2, r.data.version)
+        assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), r.data.rates)
+        val out = BackupCodec.encode(r.data)
+        assertTrue(out.contains("\"version\":2") || out.contains("\"version\": 2"))
+        assertIs<ImportResult.Ok>(BackupCodec.validate(out))
     }
 }

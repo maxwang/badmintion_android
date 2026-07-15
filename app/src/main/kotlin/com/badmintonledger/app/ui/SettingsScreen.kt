@@ -45,12 +45,13 @@ import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.BackupLoad
 import com.badmintonledger.app.LedgerViewModel
 import com.badmintonledger.app.backup.shareBackup
+import com.badmintonledger.app.ui.components.DateField
 import com.badmintonledger.domain.model.Member
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun SettingsScreen(
     vm: LedgerViewModel,
@@ -65,18 +66,20 @@ fun SettingsScreen(
     var renameTarget by remember { mutableStateOf<Member?>(null) }
     var deleteTarget by remember { mutableStateOf<Member?>(null) }
 
-    var rate by remember { mutableStateOf("") }
     var paid by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf("") }
     LaunchedEffect(data?.config) {
         data?.config?.let {
-            rate = dollarsText(it.defaultRate.value)
             paid = dollarsText(it.defaultPaid.value)
             credit = dollarsText(it.defaultCredit.value)
         }
     }
 
+    var rateDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var rateValue by remember { mutableStateOf("") }
+
     var pendingImport by remember { mutableStateOf<BackupLoad.Ready?>(null) }
+    var showResetConfirm by remember { mutableStateOf(false) }
     val importPicker =
         rememberLauncherForActivityResult(
             ActivityResultContracts.OpenDocument(),
@@ -159,16 +162,44 @@ fun SettingsScreen(
                 }
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { Text("默认参数", style = MaterialTheme.typography.titleMedium) }
+            item { Text("球馆单价", style = MaterialTheme.typography.titleMedium) }
+            items(current.rates.sortedByDescending { it.date }, key = { it.id }) { r ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("${r.date} 起")
+                    Text("$${dollarsText(r.rate.value)}/小时")
+                }
+            }
+            item {
+                DateField(
+                    label = "生效日期",
+                    value = rateDate,
+                    onChange = { rateDate = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             item {
                 OutlinedTextField(
-                    value = rate,
-                    onValueChange = { rate = it },
-                    label = { Text("默认单价（$/小时）") },
+                    value = rateValue,
+                    onValueChange = { rateValue = it },
+                    label = { Text("单价（$/小时）") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
             }
+            item {
+                Button(
+                    onClick = {
+                        val reason = vm.addRateChange(rateDate, rateValue.toDoubleOrNull())
+                        if (reason == null) rateValue = ""
+                        scope.launch { snackbar.showSnackbar(reason ?: "已记录") }
+                    },
+                ) { Text("记录价格变更") }
+            }
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { Text("默认充值参数", style = MaterialTheme.typography.titleMedium) }
             item {
                 OutlinedTextField(
                     value = paid,
@@ -192,7 +223,6 @@ fun SettingsScreen(
                     onClick = {
                         val err =
                             vm.saveConfig(
-                                rate.toDoubleOrNull(),
                                 paid.toDoubleOrNull(),
                                 credit.toDoubleOrNull(),
                             )
@@ -216,6 +246,12 @@ fun SettingsScreen(
                         },
                     ) { Text("导出数据") }
                 }
+            }
+            item {
+                OutlinedButton(
+                    onClick = { showResetConfirm = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("清空全部数据") }
             }
         }
     }
@@ -286,6 +322,26 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingImport = null }) { Text("取消") }
+            },
+        )
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("清空全部数据") },
+            text = { Text("将清空全部成员、记录与设置，且无法恢复，建议先导出备份。确定清空？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.resetAllData()
+                        showResetConfirm = false
+                        scope.launch { snackbar.showSnackbar("已清空") }
+                    },
+                ) { Text("清空") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) { Text("取消") }
             },
         )
     }

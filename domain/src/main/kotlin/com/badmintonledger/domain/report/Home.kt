@@ -1,5 +1,6 @@
 package com.badmintonledger.domain.report
 
+import com.badmintonledger.domain.calc.currentRate
 import com.badmintonledger.domain.calc.hasContributed
 import com.badmintonledger.domain.calc.memberBalancesCents
 import com.badmintonledger.domain.calc.poolRemainingCents
@@ -23,8 +24,11 @@ data class HomeSummary(
 )
 
 // Port of pages/home/home.js onShow: zero-balance members who never funded a refill
-// are hidden; the pool warns strictly below one typical session (4h x default rate).
-fun buildHomeSummary(data: LedgerData): HomeSummary {
+// are hidden; the pool warns strictly below one typical session (4h x today's rate).
+fun buildHomeSummary(
+    data: LedgerData,
+    today: String,
+): HomeSummary {
     val bal = memberBalancesCents(data)
     val rows =
         data.members
@@ -37,7 +41,7 @@ fun buildHomeSummary(data: LedgerData): HomeSummary {
     return HomeSummary(
         rows = rows,
         poolDollars = centsToDollars(pool),
-        poolWarn = pool < data.config.defaultRate.value * 4,
+        poolWarn = pool < currentRate(data, today).value * 4,
         empty = data.members.isEmpty(),
     )
 }
