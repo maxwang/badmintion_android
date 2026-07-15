@@ -14,7 +14,7 @@ import kotlinx.serialization.json.intOrNull
 sealed interface ImportResult {
     data class Summary(val members: Int, val sessions: Int, val refills: Int)
 
-    data class Ok(val summary: Summary) : ImportResult
+    data class Ok(val data: LedgerData, val summary: Summary) : ImportResult
 
     data class Err(val reason: String) : ImportResult
 }
@@ -109,7 +109,10 @@ object BackupCodec {
                 }
             }
         }
-        return ImportResult.Ok(ImportResult.Summary(members.size, sessions.size, refills.size))
+        return ImportResult.Ok(
+            json.decodeFromJsonElement(LedgerData.serializer(), root),
+            ImportResult.Summary(members.size, sessions.size, refills.size),
+        )
     }
 
     private fun JsonObject.stringOrNull(key: String): String? =

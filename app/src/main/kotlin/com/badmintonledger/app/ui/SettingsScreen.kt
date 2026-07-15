@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -37,15 +38,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.badmintonledger.app.BackupLoad
 import com.badmintonledger.app.LedgerViewModel
-import com.badmintonledger.domain.backup.ImportResult
 import com.badmintonledger.domain.model.Member
-import com.badmintonledger.domain.model.centsToDollars
 import kotlinx.coroutines.launch
-
-private fun dollarsText(cents: Long): String = centsToDollars(cents).removeSuffix(".00")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod")
@@ -73,24 +71,18 @@ fun SettingsScreen(
         }
     }
 
-    val context = LocalContext.current
-    var pendingImport by remember { mutableStateOf<Pair<String, ImportResult.Summary>?>(null) }
+    var pendingImport by remember { mutableStateOf<BackupLoad.Ready?>(null) }
     val importPicker =
         rememberLauncherForActivityResult(
             ActivityResultContracts.OpenDocument(),
         ) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
-            val text =
-                runCatching {
-                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                }.getOrNull()
-            if (text == null) {
-                scope.launch { snackbar.showSnackbar("Could not read the file") }
-                return@rememberLauncherForActivityResult
-            }
-            when (val result = vm.validateBackup(text)) {
-                is ImportResult.Ok -> pendingImport = text to result.summary
-                is ImportResult.Err -> scope.launch { snackbar.showSnackbar(result.reason) }
+            scope.launch {
+                when (val load = vm.loadBackup(uri)) {
+                    BackupLoad.CouldNotRead -> snackbar.showSnackbar("Could not read the file")
+                    is BackupLoad.Invalid -> snackbar.showSnackbar(load.reason)
+                    is BackupLoad.Ready -> pendingImport = load
+                }
             }
         }
 
@@ -169,6 +161,7 @@ fun SettingsScreen(
                     onValueChange = { rate = it },
                     label = { Text("Hourly rate ($)") },
                     modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
             }
             item {
@@ -177,6 +170,7 @@ fun SettingsScreen(
                     onValueChange = { paid = it },
                     label = { Text("Typical refill paid ($)") },
                     modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
             }
             item {
@@ -185,6 +179,7 @@ fun SettingsScreen(
                     onValueChange = { credit = it },
                     label = { Text("Typical refill credit ($)") },
                     modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
             }
             item {
@@ -254,21 +249,21 @@ fun SettingsScreen(
         )
     }
 
-    pendingImport?.let { (text, summary) ->
+    pendingImport?.let { load ->
         AlertDialog(
             onDismissRequest = { pendingImport = null },
             title = { Text("Import backup") },
             text = {
                 Text(
-                    "This backup contains ${summary.members} members, " +
-                        "${summary.sessions} weekly records and ${summary.refills} refills. " +
+                    "This backup contains ${load.summary.members} members, " +
+                        "${load.summary.sessions} weekly records and ${load.summary.refills} refills. " +
                         "Importing will replace ALL current data. Continue?",
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.applyImport(text)
+                        vm.applyImport(load.data)
                         pendingImport = null
                         scope.launch { snackbar.showSnackbar("Import successful") }
                     },

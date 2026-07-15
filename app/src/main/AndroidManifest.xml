@@ -4,7 +4,7 @@
         android:name=".LedgerApplication"
         android:label="Badminton Ledger"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.BadmintonLedger">
         <activity
             android:name=".MainActivity"
             android:exported="true">
