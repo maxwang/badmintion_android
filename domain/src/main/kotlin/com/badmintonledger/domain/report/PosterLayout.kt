@@ -49,12 +49,13 @@ fun layoutPoster(lines: List<PosterLine>): PosterLayout {
                 y += l.size
                 @Suppress("multiline-expression-wrapping")
                 l.cells.forEach { c ->
-                    texts += PosterText(
-                        c.text, c.x, y, l.size,
-                        bold = c.bold || l.bold,
-                        color = c.color ?: l.color,
-                        align = c.align,
-                    )
+                    texts +=
+                        PosterText(
+                            c.text, c.x, y, l.size,
+                            bold = c.bold || l.bold,
+                            color = c.color ?: l.color,
+                            align = c.align,
+                        )
                 }
                 y += l.gap
             }
@@ -66,11 +67,12 @@ fun layoutPoster(lines: List<PosterLine>): PosterLayout {
                     texts += PosterText(l.text, PAD, y, l.size, l.bold, l.color, PosterAlign.LEFT)
                     if (l.right != null) {
                         @Suppress("multiline-expression-wrapping")
-                        texts += PosterText(
-                            l.right, POSTER_WIDTH - PAD, y, l.size, l.bold,
-                            color = l.rightColor ?: l.color,
-                            align = PosterAlign.RIGHT,
-                        )
+                        texts +=
+                            PosterText(
+                                l.right, POSTER_WIDTH - PAD, y, l.size, l.bold,
+                                color = l.rightColor ?: l.color,
+                                align = PosterAlign.RIGHT,
+                            )
                     }
                 }
                 y += l.gap

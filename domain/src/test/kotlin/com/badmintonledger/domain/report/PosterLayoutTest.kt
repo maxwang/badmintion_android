@@ -10,17 +10,18 @@ class PosterLayoutTest {
         val layout =
             layoutPoster(
                 listOf(
-                PosterLine.CellsLine(
-                    size = 32,
-                    cells = listOf(
-                        PosterCell("王哥", 40, PosterAlign.LEFT),
-                        PosterCell("2", 300, PosterAlign.CENTER),
-                        PosterCell("$34.56", 520, PosterAlign.RIGHT),
-                        PosterCell("left $465.44", 710, PosterAlign.RIGHT, color = "#2E7D32"),
+                    PosterLine.CellsLine(
+                        size = 32,
+                        cells =
+                            listOf(
+                                PosterCell("王哥", 40, PosterAlign.LEFT),
+                                PosterCell("2", 300, PosterAlign.CENTER),
+                                PosterCell("$34.56", 520, PosterAlign.RIGHT),
+                                PosterCell("left $465.44", 710, PosterAlign.RIGHT, color = "#2E7D32"),
+                            ),
                     ),
                 ),
-            ),
-        )
+            )
         val t = layout.texts
         assertEquals(4, t.size)
         assertEquals(
@@ -51,10 +52,10 @@ class PosterLayoutTest {
         val layout =
             layoutPoster(
                 listOf(
-                PosterLine.TextLine("标题", size = 44, bold = true, center = true, gap = 30),
-                PosterLine.TextLine("左", size = 32, right = "右", rightColor = "#C62828"),
-            ),
-        )
+                    PosterLine.TextLine("标题", size = 44, bold = true, center = true, gap = 30),
+                    PosterLine.TextLine("左", size = 32, right = "右", rightColor = "#C62828"),
+                ),
+            )
         assertEquals(100 + (44 + 30) + (32 + 18), layout.height)
         assertEquals(
             listOf("标题/CENTER", "左/LEFT", "右/RIGHT"),
