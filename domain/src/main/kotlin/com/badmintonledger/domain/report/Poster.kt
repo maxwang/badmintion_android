@@ -45,7 +45,10 @@ sealed interface PosterLine {
     data class DividerLine(val gap: Int = 18) : PosterLine
 }
 
-private fun plainDollars(c: Cents): String = centsToDollars(c.value).removeSuffix(".00")
+private fun plainDollars(c: Cents): String {
+    val s = centsToDollars(c.value)
+    return if (s.contains('.')) s.trimEnd('0').trimEnd('.') else s
+}
 
 private fun plainNumber(v: Double): String = v.toString().removeSuffix(".0")
 

@@ -167,4 +167,18 @@ class PosterTest {
         assertEquals("Venue pool remaining: $2404.00", pool.text)
         assertTrue(lines.size >= 6)
     }
+
+    @Test
+    fun `weekly face line trims trailing zeros from fractional rates like WeChat`() {
+        val data =
+            fixture().copy(
+                sessions =
+                    listOf(
+                        Session("s1", "2026-07-04", 4.0, Cents(2490), 0.8, listOf("A", "B", "G")),
+                    ),
+            )
+        val lines = weeklyPosterLines(buildWeeklyPayload(data, "s1"))
+        val face = lines[2] as PosterLine.TextLine
+        assertEquals("4h × \$24.9 = \$99.60", face.text)
+    }
 }
