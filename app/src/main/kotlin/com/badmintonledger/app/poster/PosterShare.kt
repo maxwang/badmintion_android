@@ -8,8 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-private const val AUTHORITY = "com.badmintonledger.fileprovider"
-
 /** Writes the poster PNG to cache and opens the system share sheet. */
 suspend fun sharePoster(
     context: Context,
@@ -20,7 +18,7 @@ suspend fun sharePoster(
             val dir = File(context.cacheDir, "posters").apply { mkdirs() }
             val file = File(dir, "poster.png")
             file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            FileProvider.getUriForFile(context, AUTHORITY, file)
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         }
     val send =
         Intent(Intent.ACTION_SEND).apply {

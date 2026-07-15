@@ -1,15 +1,14 @@
 package com.badmintonledger.app.ui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -34,7 +33,7 @@ import com.badmintonledger.app.ui.components.MemberBalanceRow
 import com.badmintonledger.app.ui.components.PoolCard
 import com.badmintonledger.domain.report.buildHomeSummary
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Suppress("LongMethod", "LongParameterList")
 @Composable
 fun HomeScreen(
@@ -79,9 +78,10 @@ fun HomeScreen(
                 )
             }
             item {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(onClick = onRecordSession) { Text("Record week") }
                     Button(onClick = onOpenRefill) { Text("Refill") }

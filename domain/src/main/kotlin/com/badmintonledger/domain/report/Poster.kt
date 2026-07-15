@@ -92,7 +92,9 @@ fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
         mutableListOf<PosterLine>(
             PosterLine.TextLine("🏸 Badminton Monthly Report", size = 44, bold = true, center = true, gap = 30),
             PosterLine.TextLine(
-                "${p.ym} (${p.weeks} sessions, total paid \$${p.totalDollars})",
+                "${p.ym} (${p.weeks} " +
+                    (if (p.weeks == 1) "session" else "sessions") +
+                    ", total paid \$${p.totalDollars})",
                 color = PosterColors.GRAY,
                 center = true,
                 gap = 30,

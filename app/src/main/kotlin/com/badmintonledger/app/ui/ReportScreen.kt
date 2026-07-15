@@ -61,6 +61,7 @@ private fun buildPoster(
     val lines =
         if (week) {
             val id = sessionId ?: return null
+            if (data.sessions.none { it.id == id }) return null
             weeklyPosterLines(buildWeeklyPayload(data, id))
         } else {
             val ym = month ?: return null
@@ -98,7 +99,8 @@ fun ReportScreen(
         }
         if (month == null || month !in o.months) month = o.months.firstOrNull()
         // arriving from a session save: auto-generate this week's poster
-        if (initialSessionId != null && poster == null && current != null) {
+        val shouldAutoGenerate = initialSessionId != null && poster == null && current != null && weekMode
+        if (shouldAutoGenerate) {
             poster =
                 withContext(Dispatchers.Default) {
                     buildPoster(current, week = true, sessionId = sessionId, month = month)
