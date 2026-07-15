@@ -20,6 +20,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -38,12 +39,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.BackupLoad
 import com.badmintonledger.app.LedgerViewModel
+import com.badmintonledger.app.backup.shareBackup
 import com.badmintonledger.domain.model.Member
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod")
@@ -55,6 +59,7 @@ fun SettingsScreen(
     val data by vm.ledger.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var newName by remember { mutableStateOf("") }
     var renameTarget by remember { mutableStateOf<Member?>(null) }
@@ -198,8 +203,18 @@ fun SettingsScreen(
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { Text("Data", style = MaterialTheme.typography.titleMedium) }
             item {
-                Button(onClick = { importPicker.launch(arrayOf("*/*")) }) {
-                    Text("Import backup")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { importPicker.launch(arrayOf("*/*")) }) {
+                        Text("Import backup")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            val current = data ?: return@OutlinedButton
+                            scope.launch {
+                                shareBackup(context, current, LocalDate.now().toString())
+                            }
+                        },
+                    ) { Text("Export backup") }
                 }
             }
         }

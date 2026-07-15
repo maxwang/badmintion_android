@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -44,6 +45,7 @@ import com.badmintonledger.app.SaveSessionResult
 import com.badmintonledger.app.ui.components.DateField
 import com.badmintonledger.domain.calc.currentFactor
 import com.badmintonledger.domain.edit.findSessionInWeek
+import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.dollarsToCents
 import com.badmintonledger.domain.report.buildSessionPreview
 import kotlinx.coroutines.launch
@@ -56,17 +58,28 @@ fun SessionScreen(
     vm: LedgerViewModel,
     onBack: () -> Unit,
     onSaved: (String) -> Unit,
+    editSessionId: String? = null,
 ) {
     val data by vm.ledger.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     var initialized by remember { mutableStateOf(false) }
-    var editId by remember { mutableStateOf<String?>(null) }
-    var date by remember { mutableStateOf(LocalDate.now().toString()) }
-    var hours by remember { mutableStateOf("4") }
-    var rate by remember { mutableStateOf("") }
-    var factor by remember { mutableStateOf("") }
+    val formFields =
+        remember {
+            SessionFormFields(
+                editId = mutableStateOf<String?>(null),
+                date = mutableStateOf(LocalDate.now().toString()),
+                hours = mutableStateOf("4"),
+                rate = mutableStateOf(""),
+                factor = mutableStateOf(""),
+            )
+        }
+    var editId by formFields.editId
+    var date by formFields.date
+    var hours by formFields.hours
+    var rate by formFields.rate
+    var factor by formFields.factor
     val selected = remember { mutableStateMapOf<String, Boolean>() }
     var guestName by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
@@ -76,19 +89,7 @@ fun SessionScreen(
         val current = data ?: return@LaunchedEffect
         if (initialized) return@LaunchedEffect
         initialized = true
-        val existing = findSessionInWeek(current, LocalDate.now().toString())
-        if (existing == null) {
-            rate = dollarsText(current.config.defaultRate.value)
-            factor = factorText(currentFactor(current))
-        } else {
-            editId = existing.id
-            date = existing.date
-            hours = numberText(existing.hours)
-            rate = dollarsText(existing.rate.value)
-            factor = numberText(existing.factor)
-            existing.playerIds.forEach { selected[it] = true }
-            snackbar.showSnackbar("This week already has a record — editing it")
-        }
+        applyExistingSessionToForm(current, editSessionId, formFields, selected, snackbar)
     }
 
     Scaffold(
@@ -215,5 +216,45 @@ fun SessionScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             ) { Text(if (editId == null) "Save this week" else "Save changes") }
         }
+    }
+}
+
+private class SessionFormFields(
+    val editId: MutableState<String?>,
+    val date: MutableState<String>,
+    val hours: MutableState<String>,
+    val rate: MutableState<String>,
+    val factor: MutableState<String>,
+)
+
+// Port of session.js onLoad: an existing record for the current week is edited in place.
+// Arriving via the History edit path (editSessionId != null) skips the "already has a
+// record" notice, since the user navigated here deliberately to edit.
+private suspend fun applyExistingSessionToForm(
+    current: LedgerData,
+    editSessionId: String?,
+    fields: SessionFormFields,
+    selected: MutableMap<String, Boolean>,
+    snackbar: SnackbarHostState,
+) {
+    val existing =
+        if (editSessionId != null) {
+            current.sessions.firstOrNull { it.id == editSessionId }
+        } else {
+            findSessionInWeek(current, LocalDate.now().toString())
+        }
+    if (existing == null) {
+        fields.rate.value = dollarsText(current.config.defaultRate.value)
+        fields.factor.value = factorText(currentFactor(current))
+        return
+    }
+    fields.editId.value = existing.id
+    fields.date.value = existing.date
+    fields.hours.value = numberText(existing.hours)
+    fields.rate.value = dollarsText(existing.rate.value)
+    fields.factor.value = numberText(existing.factor)
+    existing.playerIds.forEach { selected[it] = true }
+    if (editSessionId == null) {
+        snackbar.showSnackbar("This week already has a record — editing it")
     }
 }

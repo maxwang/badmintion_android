@@ -126,7 +126,7 @@ class PosterTest {
         assertEquals("🏸 Badminton Monthly Report", title.text)
 
         val subtitle = assertIs<PosterLine.TextLine>(lines[1])
-        assertEquals("2026-07 (1 sessions, total paid $76.80)", subtitle.text)
+        assertEquals("2026-07 (1 session, total paid $76.80)", subtitle.text)
 
         val header = assertIs<PosterLine.CellsLine>(lines[2])
         assertEquals(28, header.size)

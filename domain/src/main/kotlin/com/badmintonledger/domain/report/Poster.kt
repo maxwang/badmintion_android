@@ -1,8 +1,5 @@
 package com.badmintonledger.domain.report
 
-import com.badmintonledger.domain.model.Cents
-import com.badmintonledger.domain.model.centsToDollars
-
 object PosterColors {
     const val GREEN = "#2E7D32"
     const val RED = "#C62828"
@@ -45,20 +42,13 @@ sealed interface PosterLine {
     data class DividerLine(val gap: Int = 18) : PosterLine
 }
 
-private fun plainDollars(c: Cents): String {
-    val s = centsToDollars(c.value)
-    return if (s.contains('.')) s.trimEnd('0').trimEnd('.') else s
-}
-
-private fun plainNumber(v: Double): String = v.toString().removeSuffix(".0")
-
 // Port of pages/report/report.js weeklyLines, English copy.
 fun weeklyPosterLines(p: WeeklyPayload): List<PosterLine> {
     val lines =
         mutableListOf<PosterLine>(
             PosterLine.TextLine("🏸 Badminton Weekly Settlement", size = 44, bold = true, center = true, gap = 30),
             PosterLine.TextLine(p.date, color = PosterColors.GRAY, center = true, gap = 30),
-            PosterLine.TextLine("${plainNumber(p.hours)}h × \$${plainDollars(p.rate)} = \$${p.faceDollars}", size = 32),
+            PosterLine.TextLine("${rawNumber(p.hours)}h × \$${rawDollars(p.rate)} = \$${p.faceDollars}", size = 32),
             PosterLine.TextLine("× factor ${p.factorText} = paid \$${p.realDollars}", size = 32, bold = true, gap = 30),
             PosterLine.TextLine("Played this week (${p.players.size})", color = PosterColors.GRAY),
         )
@@ -102,7 +92,9 @@ fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
         mutableListOf<PosterLine>(
             PosterLine.TextLine("🏸 Badminton Monthly Report", size = 44, bold = true, center = true, gap = 30),
             PosterLine.TextLine(
-                "${p.ym} (${p.weeks} sessions, total paid \$${p.totalDollars})",
+                "${p.ym} (${p.weeks} " +
+                    (if (p.weeks == 1) "session" else "sessions") +
+                    ", total paid \$${p.totalDollars})",
                 color = PosterColors.GRAY,
                 center = true,
                 gap = 30,

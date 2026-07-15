@@ -23,6 +23,9 @@ import kotlinx.coroutines.withContext
 import com.badmintonledger.domain.edit.addMember as domainAddMember
 import com.badmintonledger.domain.edit.addRefill as domainAddRefill
 import com.badmintonledger.domain.edit.addSession as domainAddSession
+import com.badmintonledger.domain.edit.deletePayment as domainDeletePayment
+import com.badmintonledger.domain.edit.deleteRefill as domainDeleteRefill
+import com.badmintonledger.domain.edit.deleteSession as domainDeleteSession
 import com.badmintonledger.domain.edit.removeMember as domainRemoveMember
 import com.badmintonledger.domain.edit.renameMember as domainRenameMember
 import com.badmintonledger.domain.edit.setGuest as domainSetGuest
@@ -232,6 +235,21 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     /** Replaces the whole document with an already-validated backup. */
     fun applyImport(data: LedgerData) {
         persist(data)
+    }
+
+    fun deleteSession(id: String) {
+        val current = ledger.value ?: return
+        persist(domainDeleteSession(current, id))
+    }
+
+    fun deleteRefill(id: String) {
+        val current = ledger.value ?: return
+        persist(domainDeleteRefill(current, id))
+    }
+
+    fun deletePayment(id: String) {
+        val current = ledger.value ?: return
+        persist(domainDeletePayment(current, id))
     }
 }
 

@@ -1,6 +1,7 @@
 package com.badmintonledger.domain.backup
 
 import com.badmintonledger.domain.model.LedgerData
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -27,11 +28,23 @@ object BackupCodec {
             ignoreUnknownKeys = true
             encodeDefaults = true
         }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    private val prettyJson =
+        Json {
+            encodeDefaults = true
+            prettyPrint = true
+            prettyPrintIndent = "  " // WeChat exports JSON.stringify(d, null, 2)
+        }
+
     private val dateRe = Regex("""^\d{4}-\d{2}-\d{2}$""")
 
     fun exportFileName(dateStr: String): String = "badminton-backup-$dateStr.json"
 
     fun encode(data: LedgerData): String = json.encodeToString(LedgerData.serializer(), data)
+
+    /** Export encoding: pretty-printed like WeChat's JSON.stringify(d, null, 2). */
+    fun encodePretty(data: LedgerData): String = prettyJson.encodeToString(LedgerData.serializer(), data)
 
     /** Call only after validate() returned Ok. */
     fun decode(text: String): LedgerData = json.decodeFromString(LedgerData.serializer(), text)
