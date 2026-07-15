@@ -1,5 +1,6 @@
 package com.badmintonledger.app.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -16,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -32,7 +35,7 @@ import com.badmintonledger.app.ui.components.PoolCard
 import com.badmintonledger.domain.report.buildHomeSummary
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("LongMethod")
+@Suppress("LongMethod", "LongParameterList")
 @Composable
 fun HomeScreen(
     vm: LedgerViewModel,
@@ -40,6 +43,7 @@ fun HomeScreen(
     onRecordSession: () -> Unit,
     onOpenRefill: () -> Unit,
     onOpenPayment: () -> Unit,
+    onOpenReport: () -> Unit,
 ) {
     val data by vm.ledger.collectAsState()
     Scaffold(
@@ -75,12 +79,13 @@ fun HomeScreen(
             }
             item {
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(onClick = onRecordSession, modifier = Modifier.weight(1f)) { Text("Record week") }
-                    Button(onClick = onOpenRefill, modifier = Modifier.weight(1f)) { Text("Refill") }
-                    Button(onClick = onOpenPayment, modifier = Modifier.weight(1f)) { Text("Payment") }
+                    Button(onClick = onRecordSession) { Text("Record week") }
+                    Button(onClick = onOpenRefill) { Text("Refill") }
+                    Button(onClick = onOpenPayment) { Text("Payment") }
+                    OutlinedButton(onClick = onOpenReport) { Text("Report") }
                 }
             }
             if (summary.empty) {
