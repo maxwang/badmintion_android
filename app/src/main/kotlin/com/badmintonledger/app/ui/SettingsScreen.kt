@@ -43,10 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.BackupLoad
 import com.badmintonledger.app.LedgerViewModel
 import com.badmintonledger.domain.model.Member
-import com.badmintonledger.domain.model.centsToDollars
 import kotlinx.coroutines.launch
-
-private fun dollarsText(cents: Long): String = centsToDollars(cents).removeSuffix(".00")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod")
