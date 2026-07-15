@@ -4,6 +4,7 @@ import com.badmintonledger.domain.model.LedgerData
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @Suppress("LongParameterList")
 private fun fixture(
@@ -182,5 +183,14 @@ class BackupCodecTest {
     @Test
     fun `export file name`() {
         assertEquals("badminton-backup-2026-07-06.json", BackupCodec.exportFileName("2026-07-06"))
+    }
+
+    @Test
+    fun `pretty export is indented, valid and round-trips`() {
+        val data = BackupCodec.decode(fixture())
+        val pretty = BackupCodec.encodePretty(data)
+        assertTrue(pretty.contains("\n  \"version\""))
+        assertIs<ImportResult.Ok>(BackupCodec.validate(pretty))
+        assertEquals(data, BackupCodec.decode(pretty))
     }
 }
