@@ -79,6 +79,7 @@ fun SettingsScreen(
     var rateValue by remember { mutableStateOf("") }
 
     var pendingImport by remember { mutableStateOf<BackupLoad.Ready?>(null) }
+    var showResetConfirm by remember { mutableStateOf(false) }
     val importPicker =
         rememberLauncherForActivityResult(
             ActivityResultContracts.OpenDocument(),
@@ -246,6 +247,12 @@ fun SettingsScreen(
                     ) { Text("导出数据") }
                 }
             }
+            item {
+                OutlinedButton(
+                    onClick = { showResetConfirm = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("清空全部数据") }
+            }
         }
     }
 
@@ -315,6 +322,26 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingImport = null }) { Text("取消") }
+            },
+        )
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("清空全部数据") },
+            text = { Text("将清空全部成员、记录与设置，且无法恢复，建议先导出备份。确定清空？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.resetAllData()
+                        showResetConfirm = false
+                        scope.launch { snackbar.showSnackbar("已清空") }
+                    },
+                ) { Text("清空") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) { Text("取消") }
             },
         )
     }

@@ -264,6 +264,10 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         val current = ledger.value ?: return
         persist(domainDeletePayment(current, id))
     }
+
+    fun resetAllData() {
+        persist(LedgerData())
+    }
 }
 
 sealed interface BackupLoad {
