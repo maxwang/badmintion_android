@@ -24,15 +24,22 @@ private fun fixture(
 
 class BackupCodecTest {
     @Test
-    fun `complete backup passes with a summary`() {
-        val r = BackupCodec.validate(fixture())
-        assertEquals(ImportResult.Ok(ImportResult.Summary(members = 2, sessions = 1, refills = 1)), r)
+    fun `complete backup passes with a summary and the decoded document`() {
+        val text = fixture()
+        val r = BackupCodec.validate(text)
+        assertIs<ImportResult.Ok>(r)
+        assertEquals(ImportResult.Summary(members = 2, sessions = 1, refills = 1), r.summary)
+        assertEquals(BackupCodec.decode(text), r.data)
+        assertEquals("阿安", r.data.members[0].name)
+        assertEquals(60000L, r.data.refills[0].contributions[0].amount.value)
     }
 
     @Test
     fun `default empty data passes too`() {
         val r = BackupCodec.validate(BackupCodec.encode(LedgerData()))
-        assertEquals(ImportResult.Ok(ImportResult.Summary(0, 0, 0)), r)
+        assertIs<ImportResult.Ok>(r)
+        assertEquals(ImportResult.Summary(0, 0, 0), r.summary)
+        assertEquals(LedgerData(), r.data)
     }
 
     @Test
