@@ -52,10 +52,10 @@ fun HistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("History") },
+                title = { Text("历史") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
             )
@@ -70,7 +70,7 @@ fun HistoryScreen(
         ) {
             item {
                 Text(
-                    "Weekly records (last 12 months)",
+                    "周记录（近12个月，点击可编辑/删除）",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -94,13 +94,13 @@ fun HistoryScreen(
                     )
                 }
             }
-            item { Text("Refills", style = MaterialTheme.typography.titleMedium) }
+            item { Text("充值记录（点击可删除）", style = MaterialTheme.typography.titleMedium) }
             items(rows.refills, key = { "r" + it.id }) { r ->
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            action = HistoryAction.ConfirmDelete("refill") { vm.deleteRefill(r.id) }
+                            action = HistoryAction.ConfirmDelete("充值") { vm.deleteRefill(r.id) }
                         }
                         .padding(vertical = 4.dp),
                 ) {
@@ -108,13 +108,13 @@ fun HistoryScreen(
                     Text(r.desc, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            item { Text("Payments", style = MaterialTheme.typography.titleMedium) }
+            item { Text("收款记录（点击可删除）", style = MaterialTheme.typography.titleMedium) }
             items(rows.payments, key = { "p" + it.id }) { p ->
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            action = HistoryAction.ConfirmDelete("payment") { vm.deletePayment(p.id) }
+                            action = HistoryAction.ConfirmDelete("收款") { vm.deletePayment(p.id) }
                         }
                         .padding(vertical = 4.dp),
                 ) {
@@ -129,38 +129,38 @@ fun HistoryScreen(
         is HistoryAction.SessionMenu ->
             AlertDialog(
                 onDismissRequest = { action = null },
-                title = { Text("Weekly record ${a.label}") },
+                title = { Text("周记录 ${a.label}") },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             action = null
                             onEditSession(a.id)
                         },
-                    ) { Text("Edit") }
+                    ) { Text("编辑") }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            action = HistoryAction.ConfirmDelete("weekly") { vm.deleteSession(a.id) }
+                            action = HistoryAction.ConfirmDelete("周") { vm.deleteSession(a.id) }
                         },
-                    ) { Text("Delete") }
+                    ) { Text("删除") }
                 },
             )
         is HistoryAction.ConfirmDelete ->
             AlertDialog(
                 onDismissRequest = { action = null },
-                title = { Text("Delete ${a.label} record") },
-                text = { Text("Deleting recalculates all balances automatically. Continue?") },
+                title = { Text("删除${a.label}记录") },
+                text = { Text("删除后所有余额自动重算，确定？") },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             a.delete()
                             action = null
                         },
-                    ) { Text("Delete") }
+                    ) { Text("删除") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { action = null }) { Text("Cancel") }
+                    TextButton(onClick = { action = null }) { Text("取消") }
                 },
             )
         null -> Unit

@@ -28,5 +28,5 @@ suspend fun shareBackup(
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-    context.startActivity(Intent.createChooser(send, "Share backup"))
+    context.startActivity(Intent.createChooser(send, "分享备份"))
 }
