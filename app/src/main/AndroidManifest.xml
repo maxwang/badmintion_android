@@ -3,7 +3,7 @@
     <application
         android:name=".LedgerApplication"
         android:icon="@mipmap/ic_launcher"
-        android:label="Badminton Ledger"
+        android:label="羽毛球记账"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.BadmintonLedger">

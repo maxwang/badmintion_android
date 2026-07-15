@@ -24,7 +24,7 @@ fun PoolCard(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Venue pool", style = MaterialTheme.typography.titleMedium)
+                Text("球馆额度剩余", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "$$poolDollars",
                     style = MaterialTheme.typography.titleMedium,
@@ -38,7 +38,7 @@ fun PoolCard(
             }
             if (warn) {
                 Text(
-                    "Low balance — consider a refill",
+                    "额度不足，需要充值",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -59,9 +59,9 @@ fun MemberBalanceRow(
         modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(name + if (isGuest) " (guest)" else "")
+        Text(name + if (isGuest) "（补位）" else "")
         Text(
-            if (owes) "owes $$absDollars" else "$$absDollars",
+            if (owes) "欠 $$absDollars" else "剩 $$absDollars",
             color =
                 if (owes) {
                     MaterialTheme.colorScheme.error

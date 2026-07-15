@@ -38,7 +38,7 @@ fun DateField(
         label = { Text(label) },
         trailingIcon = {
             IconButton(onClick = { showPicker = true }) {
-                Icon(Icons.Filled.DateRange, contentDescription = "Pick $label")
+                Icon(Icons.Filled.DateRange, contentDescription = "选择$label")
             }
         },
         modifier = modifier,
@@ -59,10 +59,10 @@ fun DateField(
                         }
                         showPicker = false
                     },
-                ) { Text("OK") }
+                ) { Text("确定") }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showPicker = false }) { Text("取消") }
             },
         ) { DatePicker(state) }
     }

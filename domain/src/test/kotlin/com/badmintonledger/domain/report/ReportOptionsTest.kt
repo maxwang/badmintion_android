@@ -20,8 +20,8 @@ class ReportOptionsTest {
             )
         val o = reportOptions(data)
         assertEquals(listOf("s3", "s2", "s1"), o.weeks.map { it.sessionId })
-        assertEquals("2026-07-11 (paid $24.00)", o.weeks[0].label)
-        assertEquals("2026-07-04 (paid $76.80)", o.weeks[1].label)
+        assertEquals("2026-07-11（实付 $24.00）", o.weeks[0].label)
+        assertEquals("2026-07-04（实付 $76.80）", o.weeks[1].label)
         assertEquals(listOf("2026-07", "2026-06"), o.months)
     }
 

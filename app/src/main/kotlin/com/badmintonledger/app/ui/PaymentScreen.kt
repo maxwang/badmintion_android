@@ -58,10 +58,10 @@ fun PaymentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Receive Payment") },
+                title = { Text("收款") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
             )
@@ -80,31 +80,31 @@ fun PaymentScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             DateField(
-                label = "Date",
+                label = "收款日期",
                 value = date,
                 onChange = { date = it },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             )
             Text(
-                "Who paid? Checking a name settles their full debt.",
+                "谁交钱了？（勾选即全额结清）",
                 style = MaterialTheme.typography.titleMedium,
             )
             if (summary.debtors.isEmpty()) {
-                Text("No one owes right now 🎉")
+                Text("当前无人欠款 🎉")
             } else {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     summary.debtors.forEach { d ->
                         FilterChip(
                             selected = selected[d.id] == true,
                             onClick = { selected[d.id] = selected[d.id] != true },
-                            label = { Text("${d.name} · owes $${d.owedDollars}") },
+                            label = { Text("${d.name} 欠 $${d.owedDollars}") },
                         )
                     }
                 }
             }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Current balances (reference)", style = MaterialTheme.typography.titleMedium)
+                    Text("当前余额（参考）", style = MaterialTheme.typography.titleMedium)
                     summary.rows.forEach { row ->
                         MemberBalanceRow(
                             name = row.name,
@@ -129,7 +129,7 @@ fun PaymentScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            ) { Text("Record payments") }
+            ) { Text("保存收款") }
         }
     }
 }

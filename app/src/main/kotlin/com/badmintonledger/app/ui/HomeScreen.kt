@@ -49,10 +49,10 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Badminton Ledger") },
+                title = { Text("羽毛球记账") },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        Icon(Icons.Filled.Settings, contentDescription = "设置")
                     }
                 },
             )
@@ -83,17 +83,17 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(onClick = onRecordSession) { Text("Record week") }
-                    Button(onClick = onOpenRefill) { Text("Refill") }
-                    Button(onClick = onOpenPayment) { Text("Payment") }
-                    OutlinedButton(onClick = onOpenReport) { Text("Report") }
-                    OutlinedButton(onClick = onOpenHistory) { Text("History") }
+                    Button(onClick = onRecordSession) { Text("记录本周") }
+                    Button(onClick = onOpenRefill) { Text("充值") }
+                    Button(onClick = onOpenPayment) { Text("收款") }
+                    OutlinedButton(onClick = onOpenReport) { Text("报告") }
+                    OutlinedButton(onClick = onOpenHistory) { Text("历史") }
                 }
             }
             if (summary.empty) {
                 item {
                     Text(
-                        "No members yet — add members in Settings",
+                        "还没有成员，请先到「设置」添加成员",
                         modifier = Modifier.padding(vertical = 24.dp),
                         style = MaterialTheme.typography.bodyLarge,
                     )

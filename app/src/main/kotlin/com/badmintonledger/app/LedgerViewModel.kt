@@ -95,7 +95,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Returns null on success, or the refusal reason (member has records). */
     fun removeMember(id: String): String? {
-        val current = ledger.value ?: return "Data is still loading"
+        val current = ledger.value ?: return "数据加载中，请稍后再试"
         return when (val r = domainRemoveMember(current, id)) {
             is EditResult.Ok -> {
                 persist(r.data)
@@ -116,9 +116,9 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
             paidDollars == null || !paidDollars.isFinite() || paidDollars <= 0 ||
             creditDollars == null || !creditDollars.isFinite() || creditDollars <= 0
         ) {
-            return "Enter valid positive numbers"
+            return "请输入有效的正数"
         }
-        val current = ledger.value ?: return "Data is still loading"
+        val current = ledger.value ?: return "数据加载中，请稍后再试"
         persist(
             current.copy(
                 config =
@@ -142,10 +142,10 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         factor: Double?,
         playerIds: List<String>,
     ): SaveSessionResult {
-        val current = ledger.value ?: return SaveSessionResult.Rejected("Data is still loading")
-        if (hours == null) return SaveSessionResult.Rejected("Hours must be a positive number")
-        if (rateDollars == null) return SaveSessionResult.Rejected("Rate must be a positive number")
-        if (factor == null) return SaveSessionResult.Rejected("Factor must be a positive number")
+        val current = ledger.value ?: return SaveSessionResult.Rejected("数据加载中，请稍后再试")
+        if (hours == null) return SaveSessionResult.Rejected("小时数需为正数")
+        if (rateDollars == null) return SaveSessionResult.Rejected("单价需为正数")
+        if (factor == null) return SaveSessionResult.Rejected("折扣系数需为正数")
         val rateCents = dollarsToCents(rateDollars)
         val result =
             if (editId == null) {
@@ -169,7 +169,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         creditDollars: Double?,
         contributionsDollars: List<Pair<String, Double>>,
     ): String? {
-        val current = ledger.value ?: return "Data is still loading"
+        val current = ledger.value ?: return "数据加载中，请稍后再试"
         val contributions =
             contributionsDollars.map { (memberId, dollars) -> Contribution(memberId, Cents(dollarsToCents(dollars))) }
         val result =
@@ -195,7 +195,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         memberIds: List<String>,
         date: String,
     ): String? {
-        val current = ledger.value ?: return "Data is still loading"
+        val current = ledger.value ?: return "数据加载中，请稍后再试"
         return when (val r = domainSettleDebtors(current, memberIds, memberIds.map { newId("p") }, date)) {
             is EditResult.Ok -> {
                 persist(r.data)

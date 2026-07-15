@@ -37,6 +37,6 @@ fun removeMember(
     data: LedgerData,
     id: String,
 ): EditResult<Unit> {
-    if (memberReferenced(data, id)) return EditResult.Err("This member has records and cannot be deleted")
+    if (memberReferenced(data, id)) return EditResult.Err("该成员已有记录，不能删除")
     return EditResult.Ok(data.copy(members = data.members.filter { it.id != id }), Unit)
 }

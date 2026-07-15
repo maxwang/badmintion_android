@@ -31,11 +31,11 @@ class HistoryTest {
     fun `sessions cut off and sorted, descriptions and names match WeChat shapes`() {
         val h = buildHistoryRows(fixture(), cutoff = "2025-07-15")
         assertEquals(listOf("s2", "s1"), h.sessions.map { it.id })
-        assertEquals("1.5h × $25.61, 1 player", h.sessions[0].desc)
+        assertEquals("1.5小时 × $25.61，1人", h.sessions[0].desc)
         assertEquals("阿安", h.sessions[0].names)
         assertEquals("38.42", h.sessions[0].realDollars)
-        assertEquals("4h × $24, 2 players", h.sessions[1].desc)
-        assertEquals("阿安, 客串", h.sessions[1].names)
+        assertEquals("4小时 × $24，2人", h.sessions[1].desc)
+        assertEquals("阿安、客串", h.sessions[1].names)
         assertEquals("76.80", h.sessions[1].realDollars)
     }
 
@@ -43,14 +43,14 @@ class HistoryTest {
     fun `refills and payments unfiltered, sorted, with raw-dollar descriptions`() {
         val h = buildHistoryRows(fixture(), cutoff = "2025-07-15")
         assertEquals(listOf("r1", "r0"), h.refills.map { it.id })
-        assertEquals("Paid $2000 → credit $2500", h.refills[0].desc)
-        assertEquals("Paid $1000 → credit $1250", h.refills[1].desc)
-        assertEquals("客串 paid $25.6", h.payments[0].desc)
+        assertEquals("实付 $2000 → 到账 $2500", h.refills[0].desc)
+        assertEquals("实付 $1000 → 到账 $1250", h.refills[1].desc)
+        assertEquals("客串 交来 $25.6", h.payments[0].desc)
     }
 
     @Test
-    fun `unknown member id renders Unknown`() {
+    fun `unknown member id renders 未知`() {
         val data = fixture().copy(payments = listOf(Payment("p2", "GHOST", Cents(100), "2026-07-06")))
-        assertEquals("Unknown paid $1", buildHistoryRows(data, "2020-01-01").payments[0].desc)
+        assertEquals("未知 交来 $1", buildHistoryRows(data, "2020-01-01").payments[0].desc)
     }
 }

@@ -71,10 +71,10 @@ fun RefillScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Refill") },
+                title = { Text("充值") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
             )
@@ -89,7 +89,7 @@ fun RefillScreen(
         ) {
             item {
                 DateField(
-                    label = "Date",
+                    label = "充值日期",
                     value = date,
                     onChange = { date = it },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -99,7 +99,7 @@ fun RefillScreen(
                 OutlinedTextField(
                     value = paid,
                     onValueChange = { paid = it },
-                    label = { Text("Paid ($)") },
+                    label = { Text("实付（$）") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -108,14 +108,14 @@ fun RefillScreen(
                 OutlinedTextField(
                     value = credit,
                     onValueChange = { credit = it },
-                    label = { Text("Credit ($)") },
+                    label = { Text("到账额度（$）") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             item {
                 Text(
-                    "Factor (paid ÷ credit): " +
+                    "折扣系数（实付/到账）：" +
                         refillFactorText(
                             paid.toDoubleOrNull()?.let(::dollarsToCents),
                             credit.toDoubleOrNull()?.let(::dollarsToCents),
@@ -124,7 +124,7 @@ fun RefillScreen(
             }
             item {
                 Text(
-                    "Contributions (must total the paid amount)",
+                    "各人出资（可不均等，如 600/600/800）",
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -138,7 +138,7 @@ fun RefillScreen(
                     OutlinedTextField(
                         value = amounts[member.id] ?: "",
                         onValueChange = { amounts[member.id] = it },
-                        label = { Text("Amount ($)") },
+                        label = { Text("出资金额（$）") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                     )
@@ -149,7 +149,7 @@ fun RefillScreen(
                     funders.sumOf { m ->
                         amounts[m.id]?.toDoubleOrNull()?.takeIf { it > 0 }?.let(::dollarsToCents) ?: 0L
                     }
-                Text("Total  $${centsToDollars(totalCents)}", style = MaterialTheme.typography.titleMedium)
+                Text("出资合计（需等于实付）  $${centsToDollars(totalCents)}", style = MaterialTheme.typography.titleMedium)
             }
             item {
                 Button(
@@ -169,7 +169,7 @@ fun RefillScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                ) { Text("Save refill") }
+                ) { Text("保存充值") }
             }
         }
     }

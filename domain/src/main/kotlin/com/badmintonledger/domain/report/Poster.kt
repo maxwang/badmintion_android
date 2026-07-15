@@ -42,15 +42,15 @@ sealed interface PosterLine {
     data class DividerLine(val gap: Int = 18) : PosterLine
 }
 
-// Port of pages/report/report.js weeklyLines, English copy.
+// Port of pages/report/report.js weeklyLines, Chinese copy.
 fun weeklyPosterLines(p: WeeklyPayload): List<PosterLine> {
     val lines =
         mutableListOf<PosterLine>(
-            PosterLine.TextLine("🏸 Badminton Weekly Settlement", size = 44, bold = true, center = true, gap = 30),
+            PosterLine.TextLine("🏸 羽毛球周结算", size = 44, bold = true, center = true, gap = 30),
             PosterLine.TextLine(p.date, color = PosterColors.GRAY, center = true, gap = 30),
-            PosterLine.TextLine("${rawNumber(p.hours)}h × \$${rawDollars(p.rate)} = \$${p.faceDollars}", size = 32),
-            PosterLine.TextLine("× factor ${p.factorText} = paid \$${p.realDollars}", size = 32, bold = true, gap = 30),
-            PosterLine.TextLine("Played this week (${p.players.size})", color = PosterColors.GRAY),
+            PosterLine.TextLine("${rawNumber(p.hours)}小时 × \$${rawDollars(p.rate)} = \$${p.faceDollars}", size = 32),
+            PosterLine.TextLine("× 折扣 ${p.factorText} = 实付 \$${p.realDollars}", size = 32, bold = true, gap = 30),
+            PosterLine.TextLine("本周上场（${p.players.size}人）", color = PosterColors.GRAY),
         )
     p.players.forEach { pl ->
         lines +=
@@ -58,25 +58,25 @@ fun weeklyPosterLines(p: WeeklyPayload): List<PosterLine> {
                 pl.name,
                 size = 32,
                 right =
-                    (if (pl.owesBefore) "owes \$" else "\$") + pl.beforeDollars +
+                    (if (pl.owesBefore) "欠 \$" else "\$") + pl.beforeDollars +
                         " − \$" + pl.shareDollars + " = " +
-                        (if (pl.owesAfter) "owes \$" else "left \$") + pl.afterDollars,
+                        (if (pl.owesAfter) "欠 \$" else "剩 \$") + pl.afterDollars,
                 rightColor = if (pl.owesAfter) PosterColors.RED else PosterColors.GREEN,
             )
     }
     if (p.balances.isNotEmpty()) {
-        lines += PosterLine.TextLine("Balances (didn't play)", color = PosterColors.GRAY, gap = 10)
+        lines += PosterLine.TextLine("未上场成员余额", color = PosterColors.GRAY, gap = 10)
     }
     p.balances.forEach { b ->
         lines +=
             PosterLine.TextLine(
                 b.name,
                 size = 32,
-                right = (if (b.owes) "owes \$" else "left \$") + b.absDollars,
+                right = (if (b.owes) "欠 \$" else "剩 \$") + b.absDollars,
                 rightColor = if (b.owes) PosterColors.RED else PosterColors.GREEN,
             )
     }
-    lines += PosterLine.TextLine("Venue pool remaining: \$${p.poolDollars}", color = PosterColors.GRAY, gap = 0)
+    lines += PosterLine.TextLine("球馆额度剩余：\$${p.poolDollars}", color = PosterColors.GRAY, gap = 0)
     return lines
 }
 
@@ -86,15 +86,13 @@ private const val COL_COUNT = 300
 private const val COL_SHARE = 520
 private const val COL_BALANCE = 710
 
-// Port of pages/report/report.js monthlyLines, English copy.
+// Port of pages/report/report.js monthlyLines, Chinese copy.
 fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
     val lines =
         mutableListOf<PosterLine>(
-            PosterLine.TextLine("🏸 Badminton Monthly Report", size = 44, bold = true, center = true, gap = 30),
+            PosterLine.TextLine("🏸 羽毛球月度报告", size = 44, bold = true, center = true, gap = 30),
             PosterLine.TextLine(
-                "${p.ym} (${p.weeks} " +
-                    (if (p.weeks == 1) "session" else "sessions") +
-                    ", total paid \$${p.totalDollars})",
+                "${p.ym}（${p.weeks}次活动，合计实付 \$${p.totalDollars}）",
                 color = PosterColors.GRAY,
                 center = true,
                 gap = 30,
@@ -105,10 +103,10 @@ fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
                 gap = 14,
                 cells =
                     listOf(
-                        PosterCell("Member", COL_NAME, PosterAlign.LEFT),
-                        PosterCell("Played", COL_COUNT, PosterAlign.CENTER),
-                        PosterCell("Share", COL_SHARE, PosterAlign.RIGHT),
-                        PosterCell("Balance", COL_BALANCE, PosterAlign.RIGHT),
+                        PosterCell("成员", COL_NAME, PosterAlign.LEFT),
+                        PosterCell("出场", COL_COUNT, PosterAlign.CENTER),
+                        PosterCell("应摊", COL_SHARE, PosterAlign.RIGHT),
+                        PosterCell("当前余额", COL_BALANCE, PosterAlign.RIGHT),
                     ),
             ),
             PosterLine.DividerLine(gap = 14),
@@ -124,7 +122,7 @@ fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
                         PosterCell(r.count.toString(), COL_COUNT, PosterAlign.CENTER),
                         PosterCell("\$" + r.shareDollars, COL_SHARE, PosterAlign.RIGHT),
                         PosterCell(
-                            (if (r.owes) "owes \$" else "\$") + r.absDollars,
+                            (if (r.owes) "欠 \$" else "\$") + r.absDollars,
                             COL_BALANCE,
                             PosterAlign.RIGHT,
                             color = if (r.owes) PosterColors.RED else PosterColors.GREEN,
@@ -132,6 +130,6 @@ fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
                     ),
             )
     }
-    lines += PosterLine.TextLine("Venue pool remaining: \$${p.poolDollars}", color = PosterColors.GRAY, gap = 0)
+    lines += PosterLine.TextLine("球馆额度剩余：\$${p.poolDollars}", color = PosterColors.GRAY, gap = 0)
     return lines
 }

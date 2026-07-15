@@ -84,7 +84,7 @@ fun SettingsScreen(
             if (uri == null) return@rememberLauncherForActivityResult
             scope.launch {
                 when (val load = vm.loadBackup(uri)) {
-                    BackupLoad.CouldNotRead -> snackbar.showSnackbar("Could not read the file")
+                    BackupLoad.CouldNotRead -> snackbar.showSnackbar("无法读取文件")
                     is BackupLoad.Invalid -> snackbar.showSnackbar(load.reason)
                     is BackupLoad.Ready -> pendingImport = load
                 }
@@ -94,10 +94,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("设置") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
             )
@@ -111,7 +111,7 @@ fun SettingsScreen(
         ) {
             item {
                 Text(
-                    "Members",
+                    "成员管理",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -126,14 +126,14 @@ fun SettingsScreen(
                         member.name,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = { renameTarget = member }) { Text("Rename") }
-                    Text("Guest", style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { renameTarget = member }) { Text("重命名") }
+                    Text("补位", style = MaterialTheme.typography.bodySmall)
                     Switch(
                         checked = member.isGuest,
                         onCheckedChange = { vm.setGuest(member.id, it) },
                     )
                     IconButton(onClick = { deleteTarget = member }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Delete ${member.name}")
+                        Icon(Icons.Filled.Delete, contentDescription = "删除${member.name}")
                     }
                 }
             }
@@ -146,7 +146,7 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("New member name") },
+                        label = { Text("新成员姓名") },
                         modifier = Modifier.weight(1f),
                     )
                     Button(
@@ -155,16 +155,16 @@ fun SettingsScreen(
                             vm.addMember(newName)
                             newName = ""
                         },
-                    ) { Text("Add") }
+                    ) { Text("添加") }
                 }
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { Text("Defaults", style = MaterialTheme.typography.titleMedium) }
+            item { Text("默认参数", style = MaterialTheme.typography.titleMedium) }
             item {
                 OutlinedTextField(
                     value = rate,
                     onValueChange = { rate = it },
-                    label = { Text("Hourly rate ($)") },
+                    label = { Text("默认单价（$/小时）") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
@@ -173,7 +173,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = paid,
                     onValueChange = { paid = it },
-                    label = { Text("Typical refill paid ($)") },
+                    label = { Text("充值实付（$）") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
@@ -182,7 +182,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = credit,
                     onValueChange = { credit = it },
-                    label = { Text("Typical refill credit ($)") },
+                    label = { Text("充值到账额度（$）") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
@@ -196,16 +196,16 @@ fun SettingsScreen(
                                 paid.toDoubleOrNull(),
                                 credit.toDoubleOrNull(),
                             )
-                        scope.launch { snackbar.showSnackbar(err ?: "Saved") }
+                        scope.launch { snackbar.showSnackbar(err ?: "已保存") }
                     },
-                ) { Text("Save defaults") }
+                ) { Text("保存默认参数") }
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { Text("Data", style = MaterialTheme.typography.titleMedium) }
+            item { Text("数据备份", style = MaterialTheme.typography.titleMedium) }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { importPicker.launch(arrayOf("*/*")) }) {
-                        Text("Import backup")
+                        Text("导入数据")
                     }
                     OutlinedButton(
                         onClick = {
@@ -214,7 +214,7 @@ fun SettingsScreen(
                                 shareBackup(context, current, LocalDate.now().toString())
                             }
                         },
-                    ) { Text("Export backup") }
+                    ) { Text("导出数据") }
                 }
             }
         }
@@ -224,7 +224,7 @@ fun SettingsScreen(
         var name by remember(member.id) { mutableStateOf(member.name) }
         AlertDialog(
             onDismissRequest = { renameTarget = null },
-            title = { Text("Rename member") },
+            title = { Text("重命名成员") },
             text = {
                 OutlinedTextField(value = name, onValueChange = { name = it })
             },
@@ -234,10 +234,10 @@ fun SettingsScreen(
                         vm.renameMember(member.id, name)
                         renameTarget = null
                     },
-                ) { Text("Save") }
+                ) { Text("保存") }
             },
             dismissButton = {
-                TextButton(onClick = { renameTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { renameTarget = null }) { Text("取消") }
             },
         )
     }
@@ -245,8 +245,8 @@ fun SettingsScreen(
     deleteTarget?.let { member ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete member") },
-            text = { Text("Delete ${member.name}?") },
+            title = { Text("删除成员") },
+            text = { Text("删除 ${member.name}？") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -256,10 +256,10 @@ fun SettingsScreen(
                             scope.launch { snackbar.showSnackbar(reason) }
                         }
                     },
-                ) { Text("Delete") }
+                ) { Text("删除") }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { deleteTarget = null }) { Text("取消") }
             },
         )
     }
@@ -267,12 +267,12 @@ fun SettingsScreen(
     pendingImport?.let { load ->
         AlertDialog(
             onDismissRequest = { pendingImport = null },
-            title = { Text("Import backup") },
+            title = { Text("导入数据") },
             text = {
                 Text(
-                    "This backup contains ${load.summary.members} members, " +
-                        "${load.summary.sessions} weekly records and ${load.summary.refills} refills. " +
-                        "Importing will replace ALL current data. Continue?",
+                    "备份包含 ${load.summary.members} 位成员、" +
+                        "${load.summary.sessions} 条周记录、${load.summary.refills} 条充值。" +
+                        "导入将覆盖全部现有数据，继续？",
                 )
             },
             confirmButton = {
@@ -280,12 +280,12 @@ fun SettingsScreen(
                     onClick = {
                         vm.applyImport(load.data)
                         pendingImport = null
-                        scope.launch { snackbar.showSnackbar("Import successful") }
+                        scope.launch { snackbar.showSnackbar("导入成功") }
                     },
-                ) { Text("Import") }
+                ) { Text("导入") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingImport = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingImport = null }) { Text("取消") }
             },
         )
     }

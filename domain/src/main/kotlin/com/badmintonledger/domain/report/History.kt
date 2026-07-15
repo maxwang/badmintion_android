@@ -27,7 +27,7 @@ fun buildHistoryRows(
     data: LedgerData,
     cutoff: String,
 ): HistoryRows {
-    fun nameOf(id: String) = data.members.firstOrNull { it.id == id }?.name ?: "Unknown"
+    fun nameOf(id: String) = data.members.firstOrNull { it.id == id }?.name ?: "未知"
     val sessions =
         data.sessions
             .filter { it.date >= cutoff }
@@ -36,20 +36,18 @@ fun buildHistoryRows(
                 SessionHistoryRow(
                     id = s.id,
                     date = s.date,
-                    desc =
-                        "${rawNumber(s.hours)}h × $${rawDollars(s.rate)}, ${s.playerIds.size} " +
-                            (if (s.playerIds.size == 1) "player" else "players"),
-                    names = s.playerIds.joinToString(", ") { nameOf(it) },
+                    desc = "${rawNumber(s.hours)}小时 × $${rawDollars(s.rate)}，${s.playerIds.size}人",
+                    names = s.playerIds.joinToString("、") { nameOf(it) },
                     realDollars = centsToDollars(sessionRealCostCents(s)),
                 )
             }
     val refills =
         data.refills.sortedByDescending { it.date }.map { r ->
-            RefillHistoryRow(r.id, r.date, "Paid $${rawDollars(r.paid)} → credit $${rawDollars(r.credit)}")
+            RefillHistoryRow(r.id, r.date, "实付 $${rawDollars(r.paid)} → 到账 $${rawDollars(r.credit)}")
         }
     val payments =
         data.payments.sortedByDescending { it.date }.map { p ->
-            PaymentHistoryRow(p.id, p.date, "${nameOf(p.memberId)} paid $${rawDollars(p.amount)}")
+            PaymentHistoryRow(p.id, p.date, "${nameOf(p.memberId)} 交来 $${rawDollars(p.amount)}")
         }
     return HistoryRows(sessions, refills, payments)
 }

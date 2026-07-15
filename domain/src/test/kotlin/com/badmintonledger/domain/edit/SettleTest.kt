@@ -59,7 +59,7 @@ class SettleTest {
     @Test
     fun `empty selection is refused`() {
         assertEquals(
-            EditResult.Err("Please select a member"),
+            EditResult.Err("请选择成员"),
             settleDebtors(fixture(), emptyList(), emptyList(), "2026-07-05"),
         )
     }
@@ -67,7 +67,7 @@ class SettleTest {
     @Test
     fun `member with nothing owing is refused`() {
         assertEquals(
-            EditResult.Err("Nothing owing for the selected member"),
+            EditResult.Err("该成员当前无欠款"),
             settleDebtors(fixture(), listOf("A"), listOf("p_1"), "2026-07-05"),
         )
     }

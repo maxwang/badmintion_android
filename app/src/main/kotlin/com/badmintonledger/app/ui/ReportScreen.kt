@@ -111,10 +111,10 @@ fun ReportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Report") },
+                title = { Text("报告") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
             )
@@ -137,7 +137,7 @@ fun ReportScreen(
                             weekMode = true
                             poster = null
                         },
-                        label = { Text("Weekly") },
+                        label = { Text("周结算") },
                     )
                     FilterChip(
                         selected = !weekMode,
@@ -145,7 +145,7 @@ fun ReportScreen(
                             weekMode = false
                             poster = null
                         },
-                        label = { Text("Monthly") },
+                        label = { Text("月度报告") },
                     )
                 }
             }
@@ -155,10 +155,10 @@ fun ReportScreen(
                         OutlinedTextField(
                             value =
                                 options.weeks.firstOrNull { it.sessionId == sessionId }?.label
-                                    ?: "No weeks recorded",
+                                    ?: "暂无记录",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Week") },
+                            label = { Text("选择周次") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = weekMenu) },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                         )
@@ -178,10 +178,10 @@ fun ReportScreen(
                 } else {
                     ExposedDropdownMenuBox(expanded = monthMenu, onExpandedChange = { monthMenu = it }) {
                         OutlinedTextField(
-                            value = month ?: "No months recorded",
+                            value = month ?: "暂无月份",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Month") },
+                            label = { Text("选择月份") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthMenu) },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                         )
@@ -211,27 +211,27 @@ fun ReportScreen(
                                         buildPoster(current, weekMode, sessionId, month)
                                     }
                                 if (bmp == null) {
-                                    snackbar.showSnackbar("Nothing to generate yet")
+                                    snackbar.showSnackbar("暂无可生成的记录")
                                 } else {
                                     poster = bmp
                                 }
                             }
                         },
-                    ) { Text("Generate poster") }
+                    ) { Text("生成海报") }
                     OutlinedButton(
                         enabled = poster != null,
                         onClick = {
                             val bmp = poster ?: return@OutlinedButton
                             scope.launch { sharePoster(context, bmp) }
                         },
-                    ) { Text("Share") }
+                    ) { Text("分享") }
                 }
             }
             item {
                 poster?.let {
                     Image(
                         bitmap = it.asImageBitmap(),
-                        contentDescription = "Poster preview",
+                        contentDescription = "海报预览",
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     )
                 }

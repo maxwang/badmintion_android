@@ -13,7 +13,7 @@ fun reportOptions(data: LedgerData): ReportOptions {
     val sorted = data.sessions.sortedByDescending { it.date }
     val weeks =
         sorted.map {
-            WeekOption(it.id, "${it.date} (paid $${centsToDollars(sessionRealCostCents(it))})")
+            WeekOption(it.id, "${it.date}（实付 $${centsToDollars(sessionRealCostCents(it))}）")
         }
     val months = sorted.map { it.date.take(7) }.distinct()
     return ReportOptions(weeks, months)

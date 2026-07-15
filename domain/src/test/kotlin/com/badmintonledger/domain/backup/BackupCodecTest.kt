@@ -50,7 +50,7 @@ class BackupCodecTest {
         assertIs<ImportResult.Err>(BackupCodec.validate("[]"))
         assertIs<ImportResult.Err>(BackupCodec.validate("not json at all"))
         assertEquals(
-            ImportResult.Err("Unsupported backup version"),
+            ImportResult.Err("备份文件版本不兼容"),
             BackupCodec.validate(fixture(version = "2")),
         )
     }
@@ -61,7 +61,7 @@ class BackupCodecTest {
         // missing members array entirely
         val noMembers = """{"version":1,"config":{"defaultRate":24,"defaultPaid":2000,
             "defaultCredit":2500},"refills":[],"payments":[],"sessions":[]}"""
-        assertEquals(ImportResult.Err("Backup is missing member data"), BackupCodec.validate(noMembers))
+        assertEquals(ImportResult.Err("备份文件缺少成员数据"), BackupCodec.validate(noMembers))
 
         // empty member name
         assertIs<ImportResult.Err>(
@@ -132,7 +132,7 @@ class BackupCodecTest {
     @Test
     fun `rejects references to missing members`() {
         assertEquals(
-            ImportResult.Err("Backup references a missing member"),
+            ImportResult.Err("备份数据引用了不存在的成员"),
             BackupCodec.validate(
                 fixture(
                     sessionsJson = """[{"id":"s1","date":"2026-07-04","hours":4,

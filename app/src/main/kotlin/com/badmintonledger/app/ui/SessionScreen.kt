@@ -95,10 +95,10 @@ fun SessionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Record This Week") },
+                title = { Text("记录本周") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
             )
@@ -116,7 +116,7 @@ fun SessionScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             DateField(
-                label = "Date",
+                label = "日期",
                 value = date,
                 onChange = { date = it },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -124,31 +124,31 @@ fun SessionScreen(
             OutlinedTextField(
                 value = hours,
                 onValueChange = { hours = it },
-                label = { Text("Hours") },
+                label = { Text("小时数") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = rate,
                 onValueChange = { rate = it },
-                label = { Text("Rate ($/hour)") },
+                label = { Text("球馆单价（$/小时）") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = factor,
                 onValueChange = { factor = it },
-                label = { Text("Factor (paid ÷ credit)") },
+                label = { Text("折扣系数（实付/到账，默认取最近充值）") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text("Players", style = MaterialTheme.typography.titleMedium)
+            Text("本周谁上场？", style = MaterialTheme.typography.titleMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 current.members.forEach { m ->
                     FilterChip(
                         selected = selected[m.id] == true,
                         onClick = { selected[m.id] = selected[m.id] != true },
-                        label = { Text(m.name + if (m.isGuest) " (guest)" else "") },
+                        label = { Text(m.name + if (m.isGuest) "（补位）" else "") },
                     )
                 }
             }
@@ -160,7 +160,7 @@ fun SessionScreen(
                 OutlinedTextField(
                     value = guestName,
                     onValueChange = { guestName = it },
-                    label = { Text("Guest name") },
+                    label = { Text("临时补位姓名") },
                     modifier = Modifier.weight(1f),
                 )
                 Button(
@@ -169,7 +169,7 @@ fun SessionScreen(
                         vm.addGuest(guestName)?.let { selected[it.id] = true }
                         guestName = ""
                     },
-                ) { Text("Add guest") }
+                ) { Text("添加补位") }
             }
             val preview =
                 buildSessionPreview(
@@ -181,10 +181,11 @@ fun SessionScreen(
             if (preview != null) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Court fee $${preview.faceDollars} → actual $${preview.realDollars}")
-                        Text("${preview.players} players · about $${preview.perPersonDollars} each")
+                        Text("费用预览", style = MaterialTheme.typography.titleMedium)
+                        Text("面额 $${preview.faceDollars} × 折扣 = 实付 $${preview.realDollars}")
+                        Text("${preview.players} 人上场 → 每人约 $${preview.perPersonDollars}")
                         Text(
-                            "The last player absorbs the rounding remainder, so the total is exact.",
+                            "取整余数由名单最后一人吸收，合计精确",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -214,7 +215,7 @@ fun SessionScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            ) { Text(if (editId == null) "Save this week" else "Save changes") }
+            ) { Text(if (editId == null) "保存本周记录" else "保存修改") }
         }
     }
 }
@@ -255,6 +256,6 @@ private suspend fun applyExistingSessionToForm(
     fields.factor.value = numberText(existing.factor)
     existing.playerIds.forEach { selected[it] = true }
     if (editSessionId == null) {
-        snackbar.showSnackbar("This week already has a record — editing it")
+        snackbar.showSnackbar("该周已有记录，正在编辑")
     }
 }
