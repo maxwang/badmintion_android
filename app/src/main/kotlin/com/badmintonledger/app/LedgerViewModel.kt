@@ -212,10 +212,12 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
                     getApplication<Application>().contentResolver.openInputStream(uri)
                         ?.bufferedReader()?.use { it.readText() }
                 }.getOrNull() ?: return@withContext BackupLoad.CouldNotRead
-            when (val r = BackupCodec.validate(text)) {
-                is ImportResult.Ok -> BackupLoad.Ready(r.data, r.summary)
-                is ImportResult.Err -> BackupLoad.Invalid(r.reason)
-            }
+            runCatching {
+                when (val r = BackupCodec.validate(text)) {
+                    is ImportResult.Ok -> BackupLoad.Ready(r.data, r.summary)
+                    is ImportResult.Err -> BackupLoad.Invalid(r.reason)
+                }
+            }.getOrElse { BackupLoad.Invalid("Not a valid backup file") }
         }
 
     /** Replaces the whole document with an already-validated backup. */
