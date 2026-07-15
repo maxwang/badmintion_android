@@ -31,7 +31,7 @@ class HistoryTest {
     fun `sessions cut off and sorted, descriptions and names match WeChat shapes`() {
         val h = buildHistoryRows(fixture(), cutoff = "2025-07-15")
         assertEquals(listOf("s2", "s1"), h.sessions.map { it.id })
-        assertEquals("1.5h × $25.61, 1 players", h.sessions[0].desc)
+        assertEquals("1.5h × $25.61, 1 player", h.sessions[0].desc)
         assertEquals("阿安", h.sessions[0].names)
         assertEquals("38.42", h.sessions[0].realDollars)
         assertEquals("4h × $24, 2 players", h.sessions[1].desc)

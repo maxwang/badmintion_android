@@ -36,7 +36,9 @@ fun buildHistoryRows(
                 SessionHistoryRow(
                     id = s.id,
                     date = s.date,
-                    desc = "${rawNumber(s.hours)}h × $${rawDollars(s.rate)}, ${s.playerIds.size} players",
+                    desc =
+                        "${rawNumber(s.hours)}h × $${rawDollars(s.rate)}, ${s.playerIds.size} " +
+                            (if (s.playerIds.size == 1) "player" else "players"),
                     names = s.playerIds.joinToString(", ") { nameOf(it) },
                     realDollars = centsToDollars(sessionRealCostCents(s)),
                 )

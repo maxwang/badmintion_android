@@ -100,7 +100,7 @@ fun HistoryScreen(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            action = HistoryAction.ConfirmDelete(r.date) { vm.deleteRefill(r.id) }
+                            action = HistoryAction.ConfirmDelete("refill") { vm.deleteRefill(r.id) }
                         }
                         .padding(vertical = 4.dp),
                 ) {
@@ -114,7 +114,7 @@ fun HistoryScreen(
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            action = HistoryAction.ConfirmDelete(p.date) { vm.deletePayment(p.id) }
+                            action = HistoryAction.ConfirmDelete("payment") { vm.deletePayment(p.id) }
                         }
                         .padding(vertical = 4.dp),
                 ) {
@@ -141,7 +141,7 @@ fun HistoryScreen(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            action = HistoryAction.ConfirmDelete(a.label) { vm.deleteSession(a.id) }
+                            action = HistoryAction.ConfirmDelete("weekly") { vm.deleteSession(a.id) }
                         },
                     ) { Text("Delete") }
                 },
@@ -149,7 +149,7 @@ fun HistoryScreen(
         is HistoryAction.ConfirmDelete ->
             AlertDialog(
                 onDismissRequest = { action = null },
-                title = { Text("Delete record") },
+                title = { Text("Delete ${a.label} record") },
                 text = { Text("Deleting recalculates all balances automatically. Continue?") },
                 confirmButton = {
                     TextButton(
