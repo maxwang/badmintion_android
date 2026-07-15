@@ -1,6 +1,7 @@
 package com.badmintonledger.app
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.badmintonledger.domain.backup.BackupCodec
@@ -13,10 +14,12 @@ import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
 import com.badmintonledger.domain.model.dollarsToCents
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.badmintonledger.domain.edit.addMember as domainAddMember
 import com.badmintonledger.domain.edit.addRefill as domainAddRefill
 import com.badmintonledger.domain.edit.addSession as domainAddSession
@@ -201,10 +204,33 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         return r.value
     }
 
-    fun validateBackup(text: String): ImportResult = BackupCodec.validate(text)
+    /** Reads and validates a backup off the main thread; the document is decoded exactly once. */
+    suspend fun loadBackup(uri: Uri): BackupLoad =
+        withContext(Dispatchers.IO) {
+            val text =
+                runCatching {
+                    getApplication<Application>().contentResolver.openInputStream(uri)
+                        ?.bufferedReader()?.use { it.readText() }
+                }.getOrNull() ?: return@withContext BackupLoad.CouldNotRead
+            when (val r = BackupCodec.validate(text)) {
+                is ImportResult.Ok -> BackupLoad.Ready(r.data, r.summary)
+                is ImportResult.Err -> BackupLoad.Invalid(r.reason)
+            }
+        }
 
-    /** Replaces the whole document. Call only after validateBackup returned Ok. */
-    fun applyImport(text: String) {
-        persist(BackupCodec.decode(text))
+    /** Replaces the whole document with an already-validated backup. */
+    fun applyImport(data: LedgerData) {
+        persist(data)
     }
+}
+
+sealed interface BackupLoad {
+    data object CouldNotRead : BackupLoad
+
+    data class Invalid(val reason: String) : BackupLoad
+
+    data class Ready(
+        val data: LedgerData,
+        val summary: ImportResult.Summary,
+    ) : BackupLoad
 }
