@@ -47,7 +47,6 @@ fun layoutPoster(lines: List<PosterLine>): PosterLayout {
             }
             is PosterLine.CellsLine -> {
                 y += l.size
-                @Suppress("multiline-expression-wrapping")
                 l.cells.forEach { c ->
                     texts +=
                         PosterText(
@@ -66,7 +65,6 @@ fun layoutPoster(lines: List<PosterLine>): PosterLayout {
                 } else {
                     texts += PosterText(l.text, PAD, y, l.size, l.bold, l.color, PosterAlign.LEFT)
                     if (l.right != null) {
-                        @Suppress("multiline-expression-wrapping")
                         texts +=
                             PosterText(
                                 l.right, POSTER_WIDTH - PAD, y, l.size, l.bold,
