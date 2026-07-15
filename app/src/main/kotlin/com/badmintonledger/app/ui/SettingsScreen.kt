@@ -45,12 +45,13 @@ import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.BackupLoad
 import com.badmintonledger.app.LedgerViewModel
 import com.badmintonledger.app.backup.shareBackup
+import com.badmintonledger.app.ui.components.DateField
 import com.badmintonledger.domain.model.Member
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun SettingsScreen(
     vm: LedgerViewModel,
@@ -73,6 +74,9 @@ fun SettingsScreen(
             credit = dollarsText(it.defaultCredit.value)
         }
     }
+
+    var rateDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var rateValue by remember { mutableStateOf("") }
 
     var pendingImport by remember { mutableStateOf<BackupLoad.Ready?>(null) }
     val importPicker =
@@ -155,6 +159,43 @@ fun SettingsScreen(
                         },
                     ) { Text("添加") }
                 }
+            }
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { Text("球馆单价", style = MaterialTheme.typography.titleMedium) }
+            items(current.rates.sortedByDescending { it.date }, key = { it.id }) { r ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("${r.date} 起")
+                    Text("$${dollarsText(r.rate.value)}/小时")
+                }
+            }
+            item {
+                DateField(
+                    label = "生效日期",
+                    value = rateDate,
+                    onChange = { rateDate = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = rateValue,
+                    onValueChange = { rateValue = it },
+                    label = { Text("单价（$/小时）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+            item {
+                Button(
+                    onClick = {
+                        val reason = vm.addRateChange(rateDate, rateValue.toDoubleOrNull())
+                        if (reason == null) rateValue = ""
+                        scope.launch { snackbar.showSnackbar(reason ?: "已记录") }
+                    },
+                ) { Text("记录价格变更") }
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { Text("默认充值参数", style = MaterialTheme.typography.titleMedium) }
