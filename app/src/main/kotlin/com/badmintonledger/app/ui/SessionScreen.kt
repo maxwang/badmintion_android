@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.LedgerViewModel
+import com.badmintonledger.app.SaveSessionResult
 import com.badmintonledger.app.ui.components.DateField
 import com.badmintonledger.domain.calc.currentFactor
 import com.badmintonledger.domain.edit.findSessionInWeek
@@ -54,6 +55,7 @@ import java.time.LocalDate
 fun SessionScreen(
     vm: LedgerViewModel,
     onBack: () -> Unit,
+    onSaved: (String) -> Unit,
 ) {
     val data by vm.ledger.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -192,20 +194,22 @@ fun SessionScreen(
                 onClick = {
                     saving = true
                     val playerIds = current.members.filter { selected[it.id] == true }.map { it.id }
-                    val err =
-                        vm.saveSession(
-                            editId,
-                            date,
-                            hours.toDoubleOrNull(),
-                            rate.toDoubleOrNull(),
-                            factor.toDoubleOrNull(),
-                            playerIds,
-                        )
-                    if (err == null) {
-                        onBack()
-                    } else {
-                        saving = false
-                        scope.launch { snackbar.showSnackbar(err) }
+                    when (
+                        val r =
+                            vm.saveSession(
+                                editId,
+                                date,
+                                hours.toDoubleOrNull(),
+                                rate.toDoubleOrNull(),
+                                factor.toDoubleOrNull(),
+                                playerIds,
+                            )
+                    ) {
+                        is SaveSessionResult.Saved -> onSaved(r.sessionId)
+                        is SaveSessionResult.Rejected -> {
+                            saving = false
+                            scope.launch { snackbar.showSnackbar(r.reason) }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),

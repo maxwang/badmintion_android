@@ -29,6 +29,12 @@ import com.badmintonledger.domain.edit.setGuest as domainSetGuest
 import com.badmintonledger.domain.edit.settleDebtors as domainSettleDebtors
 import com.badmintonledger.domain.edit.updateSession as domainUpdateSession
 
+sealed interface SaveSessionResult {
+    data class Saved(val sessionId: String) : SaveSessionResult
+
+    data class Rejected(val reason: String) : SaveSessionResult
+}
+
 @Suppress("TooManyFunctions")
 class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     private val store = (app as LedgerApplication).store
@@ -123,7 +129,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         return null
     }
 
-    /** Creates this week's record or edits [editId]. Returns null on success, or the refusal reason. */
+    /** Creates this week's record or edits [editId]. Returns the saved session id on success, or the refusal reason. */
     @Suppress("LongParameterList", "ReturnCount")
     fun saveSession(
         editId: String?,
@@ -132,11 +138,11 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         rateDollars: Double?,
         factor: Double?,
         playerIds: List<String>,
-    ): String? {
-        val current = ledger.value ?: return "Data is still loading"
-        if (hours == null) return "Hours must be a positive number"
-        if (rateDollars == null) return "Rate must be a positive number"
-        if (factor == null) return "Factor must be a positive number"
+    ): SaveSessionResult {
+        val current = ledger.value ?: return SaveSessionResult.Rejected("Data is still loading")
+        if (hours == null) return SaveSessionResult.Rejected("Hours must be a positive number")
+        if (rateDollars == null) return SaveSessionResult.Rejected("Rate must be a positive number")
+        if (factor == null) return SaveSessionResult.Rejected("Factor must be a positive number")
         val rateCents = dollarsToCents(rateDollars)
         val result =
             if (editId == null) {
@@ -147,9 +153,9 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         return when (result) {
             is EditResult.Ok -> {
                 persist(result.data)
-                null
+                SaveSessionResult.Saved(result.value.id)
             }
-            is EditResult.Err -> result.reason
+            is EditResult.Err -> SaveSessionResult.Rejected(result.reason)
         }
     }
 
