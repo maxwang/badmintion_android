@@ -53,6 +53,7 @@ fun PaymentScreen(
 
     var date by remember { mutableStateOf(LocalDate.now().toString()) }
     val selected = remember { mutableStateMapOf<String, Boolean>() }
+    var saving by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -115,11 +116,17 @@ fun PaymentScreen(
                 }
             }
             Button(
-                enabled = summary.debtors.any { selected[it.id] == true },
+                enabled = summary.debtors.any { selected[it.id] == true } && !saving,
                 onClick = {
+                    saving = true
                     val picked = summary.debtors.filter { selected[it.id] == true }.map { it.id }
                     val err = vm.settleDebtors(picked, date)
-                    if (err == null) onBack() else scope.launch { snackbar.showSnackbar(err) }
+                    if (err == null) {
+                        onBack()
+                    } else {
+                        saving = false
+                        scope.launch { snackbar.showSnackbar(err) }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             ) { Text("Record payments") }

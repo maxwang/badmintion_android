@@ -67,6 +67,7 @@ fun SessionScreen(
     var factor by remember { mutableStateOf("") }
     val selected = remember { mutableStateMapOf<String, Boolean>() }
     var guestName by remember { mutableStateOf("") }
+    var saving by remember { mutableStateOf(false) }
 
     // Port of session.js onLoad: an existing record for the current week is edited in place.
     LaunchedEffect(data) {
@@ -187,7 +188,9 @@ fun SessionScreen(
                 }
             }
             Button(
+                enabled = !saving,
                 onClick = {
+                    saving = true
                     val playerIds = current.members.filter { selected[it.id] == true }.map { it.id }
                     val err =
                         vm.saveSession(
@@ -198,7 +201,12 @@ fun SessionScreen(
                             factor.toDoubleOrNull(),
                             playerIds,
                         )
-                    if (err == null) onBack() else scope.launch { snackbar.showSnackbar(err) }
+                    if (err == null) {
+                        onBack()
+                    } else {
+                        saving = false
+                        scope.launch { snackbar.showSnackbar(err) }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             ) { Text(if (editId == null) "Save this week" else "Save changes") }

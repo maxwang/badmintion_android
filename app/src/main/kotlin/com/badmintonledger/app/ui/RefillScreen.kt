@@ -58,6 +58,7 @@ fun RefillScreen(
     var paid by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf("") }
     val amounts = remember { mutableStateMapOf<String, String>() }
+    var saving by remember { mutableStateOf(false) }
 
     LaunchedEffect(data) {
         val current = data ?: return@LaunchedEffect
@@ -152,13 +153,20 @@ fun RefillScreen(
             }
             item {
                 Button(
+                    enabled = !saving,
                     onClick = {
+                        saving = true
                         val contributions =
                             funders.mapNotNull { m ->
                                 amounts[m.id]?.toDoubleOrNull()?.takeIf { it > 0 }?.let { m.id to it }
                             }
                         val err = vm.addRefill(date, paid.toDoubleOrNull(), credit.toDoubleOrNull(), contributions)
-                        if (err == null) onBack() else scope.launch { snackbar.showSnackbar(err) }
+                        if (err == null) {
+                            onBack()
+                        } else {
+                            saving = false
+                            scope.launch { snackbar.showSnackbar(err) }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 ) { Text("Save refill") }

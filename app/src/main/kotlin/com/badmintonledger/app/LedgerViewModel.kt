@@ -124,7 +124,7 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Creates this week's record or edits [editId]. Returns null on success, or the refusal reason. */
-    @Suppress("LongParameterList")
+    @Suppress("LongParameterList", "ReturnCount")
     fun saveSession(
         editId: String?,
         date: String,
@@ -134,7 +134,10 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
         playerIds: List<String>,
     ): String? {
         val current = ledger.value ?: return "Data is still loading"
-        val rateCents = rateDollars?.let(::dollarsToCents)
+        if (hours == null) return "Hours must be a positive number"
+        if (rateDollars == null) return "Rate must be a positive number"
+        if (factor == null) return "Factor must be a positive number"
+        val rateCents = dollarsToCents(rateDollars)
         val result =
             if (editId == null) {
                 domainAddSession(current, newId("s"), date, hours, rateCents, factor, playerIds)
