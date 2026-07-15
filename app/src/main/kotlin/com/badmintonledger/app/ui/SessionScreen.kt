@@ -56,6 +56,7 @@ fun SessionScreen(
     vm: LedgerViewModel,
     onBack: () -> Unit,
     onSaved: (String) -> Unit,
+    editSessionId: String? = null,
 ) {
     val data by vm.ledger.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -76,7 +77,12 @@ fun SessionScreen(
         val current = data ?: return@LaunchedEffect
         if (initialized) return@LaunchedEffect
         initialized = true
-        val existing = findSessionInWeek(current, LocalDate.now().toString())
+        val existing =
+            if (editSessionId != null) {
+                current.sessions.firstOrNull { it.id == editSessionId }
+            } else {
+                findSessionInWeek(current, LocalDate.now().toString())
+            }
         if (existing == null) {
             rate = dollarsText(current.config.defaultRate.value)
             factor = factorText(currentFactor(current))

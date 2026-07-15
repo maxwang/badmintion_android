@@ -44,6 +44,7 @@ fun HomeScreen(
     onOpenRefill: () -> Unit,
     onOpenPayment: () -> Unit,
     onOpenReport: () -> Unit,
+    onOpenHistory: () -> Unit,
 ) {
     val data by vm.ledger.collectAsState()
     Scaffold(
@@ -86,6 +87,7 @@ fun HomeScreen(
                     Button(onClick = onOpenRefill) { Text("Refill") }
                     Button(onClick = onOpenPayment) { Text("Payment") }
                     OutlinedButton(onClick = onOpenReport) { Text("Report") }
+                    OutlinedButton(onClick = onOpenHistory) { Text("History") }
                 }
             }
             if (summary.empty) {
