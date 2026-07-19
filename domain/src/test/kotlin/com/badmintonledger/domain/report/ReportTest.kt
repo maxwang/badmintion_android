@@ -4,6 +4,7 @@ import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
 import kotlin.test.Test
@@ -142,5 +143,32 @@ class ReportTest {
         val mo = buildMonthlyPayload(fixture(), "2026-06")
         assertEquals(0, mo.weeks)
         assertEquals("0.00", mo.totalDollars)
+    }
+
+    @Test
+    fun `unpaid membership fee stays out of court balances, appears only in membershipDebts`() {
+        var data = fixture()
+        data =
+            data.copy(
+                members = data.members + Member("M", "欠年费者", false),
+                memberships = listOf(Membership("mf1", "M", 2026, "2026-07-01", Cents(5000))),
+            )
+        val w = buildWeeklyPayload(data, "s1")
+        assertTrue(w.balances.none { it.name == "欠年费者" })
+        assertEquals(listOf(MembershipDebtRow("欠年费者", "50.00")), w.membershipDebts)
+
+        val mo = buildMonthlyPayload(data, "2026-07")
+        assertTrue(mo.rows.none { it.name == "欠年费者" })
+        assertEquals(listOf(MembershipDebtRow("欠年费者", "50.00")), mo.membershipDebts)
+    }
+
+    @Test
+    fun `membershipDebtRows excludes paid entries`() {
+        val data =
+            fixture().copy(
+                members = fixture().members + Member("M", "已付年费者", false),
+                memberships = listOf(Membership("mf1", "M", 2026, "2026-07-01", Cents(5000), paidDate = "2026-07-10")),
+            )
+        assertEquals(emptyList(), membershipDebtRows(data))
     }
 }

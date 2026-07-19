@@ -150,7 +150,8 @@ fun SessionScreen(
             )
             Text("本周谁上场？", style = MaterialTheme.typography.titleMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                current.members.forEach { m ->
+                // 停用成员不再出现在"新增选人"里；但若已是本条记录的上场者（编辑时），仍保留可见
+                current.members.filter { it.active || selected[it.id] == true }.forEach { m ->
                     FilterChip(
                         selected = selected[m.id] == true,
                         onClick = { selected[m.id] = selected[m.id] != true },

@@ -3,6 +3,7 @@ package com.badmintonledger.domain.report
 import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.Payment
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
@@ -52,5 +53,21 @@ class HistoryTest {
     fun `unknown member id renders 未知`() {
         val data = fixture().copy(payments = listOf(Payment("p2", "GHOST", Cents(100), "2026-07-06")))
         assertEquals("未知 交来 $1", buildHistoryRows(data, "2020-01-01").payments[0].desc)
+    }
+
+    @Test
+    fun `memberships listed newest-first, unfiltered by cutoff, paid tag reflects paidDate`() {
+        val data =
+            fixture().copy(
+                memberships =
+                    listOf(
+                        Membership("mf1", "A", 2025, "2025-07-01", Cents(5000)),
+                        Membership("mf2", "A", 2026, "2026-07-01", Cents(2500), paidDate = "2026-07-10"),
+                    ),
+            )
+        val h = buildHistoryRows(data, cutoff = "2025-07-15") // even before the cutoff, mf1 still shows
+        assertEquals(listOf("mf2", "mf1"), h.memberships.map { it.id })
+        assertEquals("阿安 2026年度 $25.00（已付）", h.memberships[0].desc)
+        assertEquals("阿安 2025年度 $50.00（未付）", h.memberships[1].desc)
     }
 }

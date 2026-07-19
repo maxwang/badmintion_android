@@ -54,6 +54,8 @@ fun PaymentScreen(
     var date by remember { mutableStateOf(LocalDate.now().toString()) }
     val selected = remember { mutableStateMapOf<String, Boolean>() }
     var saving by remember { mutableStateOf(false) }
+    val membershipSelected = remember { mutableStateMapOf<String, Boolean>() }
+    var savingMembership by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -101,6 +103,37 @@ fun PaymentScreen(
                         )
                     }
                 }
+            }
+            if (summary.membershipDebtors.isNotEmpty()) {
+                Text(
+                    "谁交年费了？（勾选即结清会员年费，与球馆余额无关）",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    summary.membershipDebtors.forEach { d ->
+                        FilterChip(
+                            selected = membershipSelected[d.id] == true,
+                            onClick = { membershipSelected[d.id] = membershipSelected[d.id] != true },
+                            label = { Text("${d.name} 欠年费 \$${d.owedDollars}") },
+                        )
+                    }
+                }
+                Button(
+                    enabled = summary.membershipDebtors.any { membershipSelected[it.id] == true } && !savingMembership,
+                    onClick = {
+                        savingMembership = true
+                        val picked =
+                            summary.membershipDebtors.filter { membershipSelected[it.id] == true }.map { it.id }
+                        val err = vm.settleMembershipDebtors(picked, date)
+                        if (err == null) {
+                            onBack()
+                        } else {
+                            savingMembership = false
+                            scope.launch { snackbar.showSnackbar(err) }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("保存年费收款") }
             }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

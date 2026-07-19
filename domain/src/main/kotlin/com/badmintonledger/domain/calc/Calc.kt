@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.badmintonledger.domain.calc
 
 import com.badmintonledger.domain.model.Cents
@@ -93,4 +95,31 @@ fun currentRate(
     val eligible = data.rates.filter { it.date <= dateStr }
     val hit = eligible.maxByOrNull { it.date } ?: data.rates.minByOrNull { it.date }
     return checkNotNull(hit) { "rates is never empty" }.rate
+}
+
+// 会员年费欠费（分）：仅统计未标记已付的记录；与球馆余额（memberBalancesCents）完全独立
+fun membershipBalancesCents(data: LedgerData): Map<String, Long> {
+    val bal = mutableMapOf<String, Long>()
+    data.members.forEach { bal[it.id] = 0L }
+    data.memberships.forEach { mf ->
+        if (mf.paidDate != null) return@forEach
+        bal[mf.memberId] = (bal[mf.memberId] ?: 0L) - mf.amount.value
+    }
+    return bal
+}
+
+data class MembershipStatus(val eligible: Int, val charged: Int, val paid: Int)
+
+// 会员年费收取情况：eligible=正式且启用成员数，charged=其中已开单该年度会费的人数，paid=其中已标记付清的人数
+fun membershipStatus(
+    data: LedgerData,
+    year: Int,
+): MembershipStatus {
+    val eligible = data.members.filter { !it.isGuest && it.active }
+    val yearEntries = eligible.map { m -> data.memberships.firstOrNull { it.memberId == m.id && it.year == year } }
+    return MembershipStatus(
+        eligible = eligible.size,
+        charged = yearEntries.count { it != null },
+        paid = yearEntries.count { it?.paidDate != null },
+    )
 }

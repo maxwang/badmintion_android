@@ -4,6 +4,7 @@ import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.Payment
 import com.badmintonledger.domain.model.RateChange
 import com.badmintonledger.domain.model.Refill
@@ -201,5 +202,62 @@ class LedgerCalcTest {
         assertEquals(Cents(2600), currentRate(data, "2026-06-01"))
         assertEquals(Cents(2600), currentRate(data, "2026-12-31"))
         assertEquals(Cents(2400), currentRate(data, "2025-01-01"))
+    }
+
+    @Test
+    fun `membership balance is fully independent of member balance`() {
+        val data =
+            LedgerData(
+                members = listOf(Member("A", "阿安", false)),
+                refills =
+                    listOf(
+                        Refill(
+                            "r1",
+                            "2026-07-01",
+                            Cents(10000),
+                            Cents(12500),
+                            listOf(Contribution("A", Cents(10000))),
+                        ),
+                    ),
+                memberships = listOf(Membership("mf1", "A", 2026, "2026-07-01", Cents(5000))),
+            )
+        assertEquals(10000L, memberBalancesCents(data)["A"]) // contributed 100, membership debt does not touch this
+    }
+
+    @Test
+    fun `membershipBalancesCents - only unpaid entries count, independent of court balance`() {
+        val data =
+            LedgerData(
+                members = listOf(Member("A", "阿安", false), Member("B", "小波", false)),
+                memberships =
+                    listOf(
+                        Membership("mf1", "A", 2026, "2026-07-01", Cents(5000)),
+                        Membership("mf2", "B", 2026, "2026-07-01", Cents(5000), paidDate = "2026-07-10"),
+                    ),
+            )
+        val bal = membershipBalancesCents(data)
+        assertEquals(-5000L, bal["A"]) // unpaid, owes $50
+        assertEquals(0L, bal["B"]) // paid, no longer counted
+    }
+
+    @Test
+    fun `membershipStatus - eligible skips guests and disabled, charged and paid count that year`() {
+        val data =
+            LedgerData(
+                members =
+                    listOf(
+                        Member("A", "阿安", false),
+                        Member("B", "小波", false),
+                        Member("C", "陈叔", false, active = false),
+                        Member("G", "客串", true),
+                    ),
+                memberships =
+                    listOf(
+                        Membership("mf1", "A", 2026, "2026-07-01", Cents(5000), paidDate = "2026-07-10"),
+                        Membership("mf2", "B", 2026, "2026-07-01", Cents(5000)),
+                    ),
+            )
+        assertEquals(MembershipStatus(eligible = 2, charged = 2, paid = 1), membershipStatus(data, 2026))
+        assertEquals(MembershipStatus(eligible = 2, charged = 0, paid = 0), membershipStatus(data, 2025))
     }
 }

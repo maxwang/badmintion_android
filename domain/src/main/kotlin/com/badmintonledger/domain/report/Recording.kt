@@ -1,6 +1,7 @@
 package com.badmintonledger.domain.report
 
 import com.badmintonledger.domain.calc.memberBalancesCents
+import com.badmintonledger.domain.calc.membershipBalancesCents
 import com.badmintonledger.domain.calc.sessionFaceCostCents
 import com.badmintonledger.domain.calc.sessionRealCostCents
 import com.badmintonledger.domain.model.Cents
@@ -62,7 +63,13 @@ data class PaymentMemberRow(
     val absDollars: String,
 )
 
-data class PaymentSummary(val debtors: List<DebtorRow>, val rows: List<PaymentMemberRow>)
+data class MembershipDebtorRow(val id: String, val name: String, val owedDollars: String)
+
+data class PaymentSummary(
+    val debtors: List<DebtorRow>,
+    val rows: List<PaymentMemberRow>,
+    val membershipDebtors: List<MembershipDebtorRow>,
+)
 
 /** Port of payment.js onShow: debtor chips plus the all-members reference balance list. */
 fun buildPaymentSummary(data: LedgerData): PaymentSummary {
@@ -77,5 +84,12 @@ fun buildPaymentSummary(data: LedgerData): PaymentSummary {
             val c = bal[m.id] ?: 0L
             if (c < 0) DebtorRow(m.id, m.name, -c, centsToDollars(-c)) else null
         }
-    return PaymentSummary(debtors, rows)
+    // 会员年费欠费与球馆余额完全独立，单独一份「谁欠年费」清单
+    val membershipBal = membershipBalancesCents(data)
+    val membershipDebtors =
+        data.members.mapNotNull { m ->
+            val c = membershipBal[m.id] ?: 0L
+            if (c < 0L) MembershipDebtorRow(m.id, m.name, centsToDollars(-c)) else null
+        }
+    return PaymentSummary(debtors, rows, membershipDebtors)
 }

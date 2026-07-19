@@ -9,6 +9,36 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @Suppress("LongParameterList")
+private fun fixtureV3(
+    membershipsJson: String = """[{"id":"mf1","memberId":"A","year":2026,"date":"2026-07-01","amount":50}]""",
+    membersJson: String = """[
+        {"id":"A","name":"阿安","isGuest":false},
+        {"id":"G","name":"客串","isGuest":true}
+    ]""",
+    configJson: String = """{"defaultPaid":2000,"defaultCredit":2500,"membershipFee":50}""",
+): String =
+    """{"version":3,"members":$membersJson,"config":$configJson,
+    "rates":[{"id":"rt1","date":"2026-01-01","rate":24}],
+    "refills":[{"id":"r1","date":"2026-07-01","paid":600,"credit":750,
+        "contributions":[{"memberId":"A","amount":600}]}],
+    "payments":[{"id":"p1","memberId":"G","amount":25.6,"date":"2026-07-05"}],
+    "sessions":[{"id":"s1","date":"2026-07-04","hours":4,"rate":24,
+        "factor":0.8,"playerIds":["A","G"]}],
+    "memberships":$membershipsJson}"""
+
+private const val V3_NO_MEMBERSHIPS =
+    """{"version":3,"members":[{"id":"A","name":"阿安","isGuest":false}],
+    "config":{"defaultPaid":2000,"defaultCredit":2500,"membershipFee":50},
+    "rates":[{"id":"rt1","date":"2026-01-01","rate":24}],
+    "refills":[],"payments":[],"sessions":[]}"""
+
+private const val V3_NO_FEE =
+    """{"version":3,"members":[{"id":"A","name":"阿安","isGuest":false}],
+    "config":{"defaultPaid":2000,"defaultCredit":2500},
+    "rates":[{"id":"rt1","date":"2026-01-01","rate":24}],
+    "refills":[],"payments":[],"sessions":[],"memberships":[]}"""
+
+@Suppress("LongParameterList")
 private fun fixture(
     version: String = "1",
     membersJson: String = """[
@@ -65,13 +95,17 @@ class BackupCodecTest {
         assertIs<ImportResult.Err>(BackupCodec.validate("not json at all"))
         assertEquals(
             ImportResult.Err("备份文件版本不兼容"),
-            BackupCodec.validate(fixture(version = "3")),
+            BackupCodec.validate(fixture(version = "4")),
         )
-        // fixture() is a v1 shape (no "rates" key); version 2 alone doesn't fail, but the
+        // fixture() is a v1 shape (no "rates" key); version 2 or 3 alone doesn't fail, but the
         // missing rate history does.
         assertEquals(
             ImportResult.Err("单价历史数据不完整"),
             BackupCodec.validate(fixture(version = "2")),
+        )
+        assertEquals(
+            ImportResult.Err("单价历史数据不完整"),
+            BackupCodec.validate(fixture(version = "3")),
         )
     }
 
@@ -235,13 +269,64 @@ class BackupCodecTest {
     }
 
     @Test
-    fun `v1 import migrates and re-exports as v2`() {
-        val r = BackupCodec.validate(fixture()) // v1 fixture
-        assertIs<ImportResult.Ok>(r)
-        assertEquals(2, r.data.version)
-        assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), r.data.rates)
-        val out = BackupCodec.encode(r.data)
-        assertTrue(out.contains("\"version\":2") || out.contains("\"version\": 2"))
+    fun `v1 and v2 import migrate through to v3 in one decode`() {
+        val r1 = BackupCodec.validate(fixture()) // v1 fixture
+        assertIs<ImportResult.Ok>(r1)
+        assertEquals(3, r1.data.version)
+        assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), r1.data.rates)
+        assertEquals(emptyList(), r1.data.memberships)
+        assertEquals(Cents(5000), r1.data.config.membershipFee)
+        val out = BackupCodec.encode(r1.data)
+        assertTrue(out.contains("\"version\":3") || out.contains("\"version\": 3"))
         assertIs<ImportResult.Ok>(BackupCodec.validate(out))
+
+        val r2 = BackupCodec.validate(fixtureV2()) // v2 fixture
+        assertIs<ImportResult.Ok>(r2)
+        assertEquals(3, r2.data.version)
+        assertEquals(emptyList(), r2.data.memberships)
+        assertEquals(Cents(5000), r2.data.config.membershipFee)
+    }
+
+    @Test
+    fun `v3 backup passes, missing or broken membership data rejected`() {
+        val ok = BackupCodec.validate(fixtureV3())
+        assertIs<ImportResult.Ok>(ok)
+        assertEquals(ImportResult.Summary(members = 2, sessions = 1, refills = 1), (ok as ImportResult.Ok).summary)
+
+        assertEquals(ImportResult.Err("会员年费数据不完整"), BackupCodec.validate(V3_NO_MEMBERSHIPS))
+        assertEquals(ImportResult.Err("配置数据不完整"), BackupCodec.validate(V3_NO_FEE))
+        val zeroAmount = """[{"id":"mf1","memberId":"A","year":2026,"date":"2026-07-01","amount":0}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV3(membershipsJson = zeroAmount)))
+        val fractionalYear = """[{"id":"mf1","memberId":"A","year":2026.5,"date":"2026-07-01","amount":50}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV3(membershipsJson = fractionalYear)))
+        val badDate = """[{"id":"mf1","memberId":"A","year":2026,"date":"07/01/2026","amount":50}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV3(membershipsJson = badDate)))
+        val ghostMember = """[{"id":"mf1","memberId":"X","year":2026,"date":"2026-07-01","amount":50}]"""
+        assertEquals(
+            ImportResult.Err("备份数据引用了不存在的成员"),
+            BackupCodec.validate(fixtureV3(membershipsJson = ghostMember)),
+        )
+    }
+
+    @Test
+    fun `membership paidDate optional but must be a valid date if present`() {
+        val goodPaidDate =
+            """[{"id":"mf1","memberId":"A","year":2026,"date":"2026-07-01","amount":50,"paidDate":"2026-07-15"}]"""
+        assertIs<ImportResult.Ok>(BackupCodec.validate(fixtureV3(membershipsJson = goodPaidDate)))
+
+        val badPaidDate =
+            """[{"id":"mf1","memberId":"A","year":2026,"date":"2026-07-01","amount":50,"paidDate":"07/15/2026"}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV3(membershipsJson = badPaidDate)))
+    }
+
+    @Test
+    fun `member active optional but must be boolean if present`() {
+        val withActive = """[{"id":"A","name":"阿安","isGuest":false,"active":false},
+            {"id":"G","name":"客串","isGuest":true}]"""
+        assertIs<ImportResult.Ok>(BackupCodec.validate(fixtureV3(membersJson = withActive)))
+
+        val badActive = """[{"id":"A","name":"阿安","isGuest":false,"active":"no"},
+            {"id":"G","name":"客串","isGuest":true}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV3(membersJson = badActive)))
     }
 }

@@ -1,6 +1,7 @@
 package com.badmintonledger.domain.report
 
 import com.badmintonledger.domain.calc.memberBalancesCents
+import com.badmintonledger.domain.calc.membershipBalancesCents
 import com.badmintonledger.domain.calc.monthSummary
 import com.badmintonledger.domain.calc.poolRemainingCents
 import com.badmintonledger.domain.calc.sessionFaceCostCents
@@ -31,6 +32,7 @@ data class WeeklyPayload(
     val realDollars: String,
     val players: List<PlayerRow>,
     val balances: List<BalanceRow>,
+    val membershipDebts: List<MembershipDebtRow>,
     val poolDollars: String,
 )
 
@@ -47,8 +49,19 @@ data class MonthlyPayload(
     val weeks: Int,
     val totalDollars: String,
     val rows: List<MonthlyRow>,
+    val membershipDebts: List<MembershipDebtRow>,
     val poolDollars: String,
 )
+
+data class MembershipDebtRow(val name: String, val owedDollars: String)
+
+// 会员年费未付：与球馆余额（balanceRows）完全独立的单独列表，只列未标记已付的成员
+fun membershipDebtRows(data: LedgerData): List<MembershipDebtRow> {
+    val bal = membershipBalancesCents(data)
+    return data.members
+        .filter { (bal[it.id] ?: 0L) < 0L }
+        .map { MembershipDebtRow(it.name, centsToDollars(-(bal[it.id] ?: 0L))) }
+}
 
 fun memberName(
     data: LedgerData,
@@ -107,6 +120,7 @@ fun buildWeeklyPayload(
         realDollars = centsToDollars(r.totalCents),
         players = sessionBreakdownRows(data, s),
         balances = balanceRows(data, s.playerIds),
+        membershipDebts = membershipDebtRows(data),
         poolDollars = centsToDollars(poolRemainingCents(data)),
     )
 }
@@ -139,6 +153,7 @@ fun buildMonthlyPayload(
         weeks = m.weeks,
         totalDollars = centsToDollars(m.totalCents),
         rows = rows,
+        membershipDebts = membershipDebtRows(data),
         poolDollars = centsToDollars(poolRemainingCents(data)),
     )
 }

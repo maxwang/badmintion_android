@@ -82,7 +82,7 @@ fun RefillScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         val current = data ?: return@Scaffold
-        val funders = current.members.filter { !it.isGuest }
+        val funders = current.members.filter { !it.isGuest && it.active }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

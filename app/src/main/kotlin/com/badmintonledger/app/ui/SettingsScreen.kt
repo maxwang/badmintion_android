@@ -43,9 +43,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.badmintonledger.app.BackupLoad
+import com.badmintonledger.app.ChargeMembershipFeeResult
 import com.badmintonledger.app.LedgerViewModel
 import com.badmintonledger.app.backup.shareBackup
 import com.badmintonledger.app.ui.components.DateField
+import com.badmintonledger.domain.calc.membershipStatus
 import com.badmintonledger.domain.model.Member
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -68,10 +70,12 @@ fun SettingsScreen(
 
     var paid by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf("") }
+    var membershipFee by remember { mutableStateOf("") }
     LaunchedEffect(data?.config) {
         data?.config?.let {
             paid = dollarsText(it.defaultPaid.value)
             credit = dollarsText(it.defaultCredit.value)
+            membershipFee = dollarsText(it.membershipFee.value)
         }
     }
 
@@ -135,6 +139,11 @@ fun SettingsScreen(
                         checked = member.isGuest,
                         onCheckedChange = { vm.setGuest(member.id, it) },
                     )
+                    Text("启用", style = MaterialTheme.typography.bodySmall)
+                    Switch(
+                        checked = member.active,
+                        onCheckedChange = { vm.setActive(member.id, it) },
+                    )
                     IconButton(onClick = { deleteTarget = member }) {
                         Icon(Icons.Filled.Delete, contentDescription = "删除${member.name}")
                     }
@@ -160,6 +169,51 @@ fun SettingsScreen(
                         },
                     ) { Text("添加") }
                 }
+            }
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { Text("会员年费", style = MaterialTheme.typography.titleMedium) }
+            item {
+                val year = remember { LocalDate.now().year }
+                val status = remember(current) { membershipStatus(current, year) }
+                Text("${year}年度：共 ${status.eligible} 名正式成员，已开单 ${status.charged}，已付清 ${status.paid}")
+            }
+            item {
+                Text("会费总额（$/年，按正式且启用成员人数均分）", style = MaterialTheme.typography.bodySmall)
+            }
+            item {
+                OutlinedTextField(
+                    value = membershipFee,
+                    onValueChange = { membershipFee = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+            item {
+                Button(
+                    onClick = {
+                        val year = LocalDate.now().year
+                        val amount = membershipFee.toDoubleOrNull()
+                        val result = vm.chargeAnnualMembershipFee(year, amount, LocalDate.now().toString())
+                        val message =
+                            when (result) {
+                                is ChargeMembershipFeeResult.Charged ->
+                                    if (result.chargedCount == 0) {
+                                        "本年度会费已全部开单"
+                                    } else {
+                                        "已开单 ${result.chargedCount} 人，每人约 \$${result.perPersonDollars}" +
+                                            if (result.skippedCount > 0) "，跳过 ${result.skippedCount} 人（已开单）" else ""
+                                    }
+                                is ChargeMembershipFeeResult.Rejected -> result.reason
+                            }
+                        scope.launch { snackbar.showSnackbar(message) }
+                    },
+                ) { Text("收取${LocalDate.now().year}年会费") }
+            }
+            item {
+                Text(
+                    "这里只登记应缴金额（按人数均分后开单）；实际收到付款后，请到「收款」页标记付清。",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { Text("球馆单价", style = MaterialTheme.typography.titleMedium) }

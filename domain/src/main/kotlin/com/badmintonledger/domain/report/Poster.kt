@@ -76,7 +76,18 @@ fun weeklyPosterLines(p: WeeklyPayload): List<PosterLine> {
                 rightColor = if (b.owes) PosterColors.RED else PosterColors.GREEN,
             )
     }
+    lines += membershipDebtLines(p.membershipDebts)
     lines += PosterLine.TextLine("球馆额度剩余：\$${p.poolDollars}", color = PosterColors.GRAY, gap = 0)
+    return lines
+}
+
+// 会员年费未付：与球馆余额行样式一致，但独立成段，不与上面的球馆余额混在一起
+private fun membershipDebtLines(debts: List<MembershipDebtRow>): List<PosterLine> {
+    if (debts.isEmpty()) return emptyList()
+    val lines = mutableListOf<PosterLine>(PosterLine.TextLine("会员年费未付", color = PosterColors.GRAY, gap = 10))
+    debts.forEach { b ->
+        lines += PosterLine.TextLine(b.name, size = 32, right = "欠 \$" + b.owedDollars, rightColor = PosterColors.RED)
+    }
     return lines
 }
 
@@ -130,6 +141,7 @@ fun monthlyPosterLines(p: MonthlyPayload): List<PosterLine> {
                     ),
             )
     }
+    lines += membershipDebtLines(p.membershipDebts)
     lines += PosterLine.TextLine("球馆额度剩余：\$${p.poolDollars}", color = PosterColors.GRAY, gap = 0)
     return lines
 }

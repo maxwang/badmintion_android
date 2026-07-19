@@ -54,7 +54,7 @@ object BackupCodec {
     /** Call only after validate() returned Ok. */
     fun decode(text: String): LedgerData {
         val root = json.parseToJsonElement(text)
-        val migrated = (root as? JsonObject)?.let(::migrateToV2) ?: root
+        val migrated = (root as? JsonObject)?.let(::migrate) ?: root
         return json.decodeFromJsonElement(LedgerData.serializer(), migrated)
     }
 
@@ -69,11 +69,11 @@ object BackupCodec {
         return validate(root)
     }
 
-    @Suppress("CyclomaticComplexMethod", "ComplexCondition", "LongMethod", "ReturnCount")
+    @Suppress("CyclomaticComplexMethod", "ComplexCondition", "LongMethod", "ReturnCount", "NestedBlockDepth")
     fun validate(root: JsonElement): ImportResult {
         val obj = root as? JsonObject ?: return ImportResult.Err("备份文件格式不正确")
         val version = (obj["version"] as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
-        if (version != 1 && version != 2) {
+        if (version != 1 && version != 2 && version != 3) {
             return ImportResult.Err("备份文件版本不兼容")
         }
         val members = obj["members"] as? JsonArray ?: return ImportResult.Err("备份文件缺少成员数据")
@@ -91,6 +91,7 @@ object BackupCodec {
             if (id.isNullOrEmpty() || name.isNullOrEmpty() || isGuest == null) {
                 return ImportResult.Err("成员数据不完整")
             }
+            if (mo.containsKey("active") && !mo.booleanIfPresent("active")) return ImportResult.Err("成员数据不完整")
             if (!ids.add(id)) return ImportResult.Err("成员数据不完整")
         }
         if (!config.positive("defaultPaid") || !config.positive("defaultCredit")) {
@@ -105,6 +106,23 @@ object BackupCodec {
                 val ro = rt as? JsonObject ?: return ImportResult.Err("单价历史数据不完整")
                 if (ro.stringOrNull("id").isNullOrEmpty() || !ro.dateOk("date") || !ro.positive("rate")) {
                     return ImportResult.Err("单价历史数据不完整")
+                }
+            }
+            if (version == 3) {
+                if (!config.positive("membershipFee")) return ImportResult.Err("配置数据不完整")
+                val memberships = obj["memberships"] as? JsonArray ?: return ImportResult.Err("会员年费数据不完整")
+                for (mf in memberships) {
+                    val mfo = mf as? JsonObject ?: return ImportResult.Err("会员年费数据不完整")
+                    val year = (mfo["year"] as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
+                    if (mfo.stringOrNull("id").isNullOrEmpty() || !mfo.dateOk("date") || !mfo.positive("amount") ||
+                        year == null || year <= 0
+                    ) {
+                        return ImportResult.Err("会员年费数据不完整")
+                    }
+                    if (mfo.containsKey("paidDate") && !mfo.dateOk("paidDate")) {
+                        return ImportResult.Err("会员年费数据不完整")
+                    }
+                    if (mfo.stringOrNull("memberId") !in ids) return ImportResult.Err("备份数据引用了不存在的成员")
                 }
             }
         }
@@ -145,10 +163,12 @@ object BackupCodec {
             }
         }
         return ImportResult.Ok(
-            json.decodeFromJsonElement(LedgerData.serializer(), migrateToV2(obj)),
+            json.decodeFromJsonElement(LedgerData.serializer(), migrate(obj)),
             ImportResult.Summary(members.size, sessions.size, refills.size),
         )
     }
+
+    private fun migrate(obj: JsonObject): JsonObject = migrateToV3(migrateToV2(obj))
 
     // v1 → v2 at the JSON layer: the typed model has no defaultRate and would silently
     // default a missing rates key, so migration must happen BEFORE decode.
@@ -190,6 +210,32 @@ object BackupCodec {
         }
     }
 
+    // v2 → v3 at the JSON layer: same reasoning as v1 → v2 — the typed model would
+    // otherwise silently default memberships/membershipFee before validation runs.
+    @Suppress("ReturnCount")
+    private fun migrateToV3(obj: JsonObject): JsonObject {
+        val version = (obj["version"] as? JsonPrimitive)?.intOrNull
+        if (version == 3) return obj
+        val config = obj["config"] as? JsonObject ?: return obj
+        return buildJsonObject {
+            obj.forEach { (k, v) ->
+                when (k) {
+                    "version" -> put(k, 3)
+                    "config" ->
+                        put(
+                            k,
+                            buildJsonObject {
+                                config.forEach { (ck, cv) -> put(ck, cv) }
+                                put("membershipFee", 50)
+                            },
+                        )
+                    else -> put(k, v)
+                }
+            }
+            put("memberships", buildJsonArray {})
+        }
+    }
+
     private fun JsonObject.stringOrNull(key: String): String? =
         (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
 
@@ -197,6 +243,11 @@ object BackupCodec {
 
     private fun JsonObject.positive(key: String): Boolean =
         (this[key] as? JsonPrimitive)?.takeIf { !it.isString }?.doubleOrNull?.let { it.isFinite() && it > 0 } == true
+
+    // true when [key]'s value is a JSON boolean; only meaningful once the caller has
+    // already checked the key is present (optional fields validate their type, not presence).
+    private fun JsonObject.booleanIfPresent(key: String): Boolean =
+        (this[key] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull != null
 
     private fun JsonObject.dateOk(key: String): Boolean = stringOrNull(key)?.matches(dateRe) == true
 }
