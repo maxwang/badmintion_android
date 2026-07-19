@@ -9,12 +9,12 @@ class LedgerDataJsonTest {
     private val backupJson =
         """
         {
-          "version": 2,
+          "version": 3,
           "members": [
             { "id": "A", "name": "阿安", "isGuest": false },
             { "id": "G", "name": "客串", "isGuest": true }
           ],
-          "config": { "defaultPaid": 2000, "defaultCredit": 2500 },
+          "config": { "defaultPaid": 2000, "defaultCredit": 2500, "membershipFee": 50 },
           "rates": [{ "id": "rt1", "date": "2026-01-01", "rate": 24 }],
           "refills": [{
             "id": "r1", "date": "2026-07-01", "paid": 600, "credit": 750,
@@ -22,14 +22,15 @@ class LedgerDataJsonTest {
           }],
           "payments": [{ "id": "p1", "memberId": "G", "amount": 25.6, "date": "2026-07-05" }],
           "sessions": [{ "id": "s1", "date": "2026-07-04", "hours": 4, "rate": 24,
-                         "factor": 0.8, "playerIds": ["A", "G"] }]
+                         "factor": 0.8, "playerIds": ["A", "G"] }],
+          "memberships": [{ "id": "mf1", "memberId": "A", "year": 2026, "date": "2026-07-01", "amount": 25 }]
         }
         """.trimIndent()
 
     @Test
     fun `backup JSON decodes with dollar amounts becoming cents`() {
         val data = BackupCodec.decode(backupJson)
-        assertEquals(2, data.version)
+        assertEquals(3, data.version)
         assertEquals(listOf(RateChange("rt1", "2026-01-01", Cents(2400))), data.rates)
         assertEquals(Cents(60000), data.refills[0].contributions[0].amount)
         assertEquals(Cents(75000), data.refills[0].credit)
@@ -38,6 +39,7 @@ class LedgerDataJsonTest {
         assertEquals(4.0, data.sessions[0].hours)
         assertEquals(0.8, data.sessions[0].factor)
         assertEquals(listOf("A", "G"), data.sessions[0].playerIds)
+        assertEquals(Cents(2500), data.memberships[0].amount)
     }
 
     @Test
@@ -48,12 +50,18 @@ class LedgerDataJsonTest {
     }
 
     @Test
-    fun `default LedgerData matches WeChat DEFAULT_DATA v2`() {
+    fun `default LedgerData matches WeChat DEFAULT_DATA v3`() {
         val d = LedgerData()
-        assertEquals(2, d.version)
-        assertEquals(Config(Cents(200000), Cents(250000)), d.config)
+        assertEquals(3, d.version)
+        assertEquals(Config(Cents(200000), Cents(250000), Cents(5000)), d.config)
         assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), d.rates)
         assertEquals(emptyList(), d.members)
+        assertEquals(emptyList(), d.memberships)
+    }
+
+    @Test
+    fun `member active defaults true`() {
+        assertEquals(true, Member("A", "阿安", false).active)
     }
 
     @Test
@@ -62,8 +70,21 @@ class LedgerDataJsonTest {
             """{"version":1,"members":[],"config":{"defaultRate":30,"defaultPaid":2000,
             "defaultCredit":2500},"refills":[],"payments":[],"sessions":[]}"""
         val d = BackupCodec.decode(v1)
-        assertEquals(2, d.version)
-        assertEquals(Config(Cents(200000), Cents(250000)), d.config)
+        assertEquals(3, d.version)
+        assertEquals(Config(Cents(200000), Cents(250000), Cents(5000)), d.config)
         assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(3000))), d.rates)
+        assertEquals(emptyList(), d.memberships)
+    }
+
+    @Test
+    fun `v2 document decodes through migration gaining empty memberships and default fee`() {
+        val v2 =
+            """{"version":2,"members":[],"config":{"defaultPaid":2000,"defaultCredit":2500},
+            "rates":[{"id":"rate_seed","date":"2000-01-01","rate":24}],
+            "refills":[],"payments":[],"sessions":[]}"""
+        val d = BackupCodec.decode(v2)
+        assertEquals(3, d.version)
+        assertEquals(Cents(5000), d.config.membershipFee)
+        assertEquals(emptyList(), d.memberships)
     }
 }

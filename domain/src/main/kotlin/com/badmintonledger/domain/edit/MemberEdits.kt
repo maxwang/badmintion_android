@@ -25,13 +25,20 @@ fun setGuest(
     isGuest: Boolean,
 ): LedgerData = data.copy(members = data.members.map { if (it.id == id) it.copy(isGuest = isGuest) else it })
 
+fun setActive(
+    data: LedgerData,
+    id: String,
+    active: Boolean,
+): LedgerData = data.copy(members = data.members.map { if (it.id == id) it.copy(active = active) else it })
+
 fun memberReferenced(
     data: LedgerData,
     id: String,
 ): Boolean =
     data.sessions.any { id in it.playerIds } ||
         data.payments.any { it.memberId == id } ||
-        data.refills.any { r -> r.contributions.any { it.memberId == id } }
+        data.refills.any { r -> r.contributions.any { it.memberId == id } } ||
+        data.memberships.any { it.memberId == id }
 
 fun removeMember(
     data: LedgerData,

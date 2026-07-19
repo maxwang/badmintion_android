@@ -1,6 +1,9 @@
 package com.badmintonledger.domain.edit
 
+import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
+import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.Membership
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -31,5 +34,24 @@ class MemberEditTest {
         val data = addMember(LedgerData(), "m1", "阿安", false).data
         assertEquals(data, renameMember(data, "nope", "x"))
         assertEquals(data, setGuest(data, "nope", true))
+    }
+
+    @Test
+    fun `memberReferenced and hard-delete are blocked by a memberships entry alone`() {
+        val data =
+            LedgerData(members = listOf(Member("A", "阿安", false)))
+                .copy(memberships = listOf(Membership("mf1", "A", 2026, "2026-07-01", Cents(5000))))
+        assertEquals(true, memberReferenced(data, "A"))
+        assertIs<EditResult.Err>(removeMember(data, "A"))
+    }
+
+    @Test
+    fun `setActive toggles the flag, defaults true, unknown id is a no-op`() {
+        val data = addMember(LedgerData(), "m1", "阿安", false).data
+        assertEquals(true, data.members[0].active)
+        val disabled = setActive(data, "m1", false)
+        assertEquals(false, disabled.members[0].active)
+        assertEquals(true, setActive(disabled, "m1", true).members[0].active)
+        assertEquals(disabled, setActive(disabled, "nope", true))
     }
 }
