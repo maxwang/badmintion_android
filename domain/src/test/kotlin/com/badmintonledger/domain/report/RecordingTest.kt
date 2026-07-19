@@ -4,6 +4,7 @@ import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.Payment
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
@@ -95,5 +96,15 @@ class RecordingTest {
         val s = buildPaymentSummary(LedgerData())
         assertEquals(emptyList(), s.debtors)
         assertEquals(emptyList(), s.rows)
+        assertEquals(emptyList(), s.membershipDebtors)
+    }
+
+    @Test
+    fun `payment summary includes independent membership debtors`() {
+        val data = fixture().copy(memberships = listOf(Membership("mf1", "G", 2026, "2026-07-01", Cents(5000))))
+        val s = buildPaymentSummary(data)
+        assertEquals(listOf(MembershipDebtorRow("G", "客串", "50.00")), s.membershipDebtors)
+        // court-fee debtors/rows unaffected by the membership entry
+        assertEquals(listOf(DebtorRow("G", "客串", 2560, "25.60")), s.debtors)
     }
 }

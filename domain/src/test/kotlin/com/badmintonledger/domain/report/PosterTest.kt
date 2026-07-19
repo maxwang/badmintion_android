@@ -4,6 +4,7 @@ import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
 import kotlin.test.Test
@@ -180,5 +181,38 @@ class PosterTest {
         val lines = weeklyPosterLines(buildWeeklyPayload(data, "s1"))
         val face = lines[2] as PosterLine.TextLine
         assertEquals("4小时 × \$24.9 = \$99.60", face.text)
+    }
+
+    @Test
+    fun `weekly and monthly lines gain a 会员年费未付 section before the pool line`() {
+        val data =
+            fixture().copy(
+                members = fixture().members + Member("M", "欠年费者", false),
+                memberships = listOf(Membership("mf1", "M", 2026, "2026-07-01", Cents(5000))),
+            )
+
+        val weekly = weeklyPosterLines(buildWeeklyPayload(data, "s1"))
+        val weeklyHeader = assertIs<PosterLine.TextLine>(weekly[weekly.size - 3])
+        assertEquals("会员年费未付", weeklyHeader.text)
+        assertEquals(PosterColors.GRAY, weeklyHeader.color)
+        assertEquals(10, weeklyHeader.gap)
+        val weeklyDebtRow = assertIs<PosterLine.TextLine>(weekly[weekly.size - 2])
+        assertEquals("欠年费者", weeklyDebtRow.text)
+        assertEquals("欠 \$50.00", weeklyDebtRow.right)
+        assertEquals(PosterColors.RED, weeklyDebtRow.rightColor)
+        assertIs<PosterLine.TextLine>(weekly.last()).let { assertEquals("球馆额度剩余：\$2404.00", it.text) }
+
+        val monthly = monthlyPosterLines(buildMonthlyPayload(data, "2026-07"))
+        val monthlyHeader = assertIs<PosterLine.TextLine>(monthly[monthly.size - 3])
+        assertEquals("会员年费未付", monthlyHeader.text)
+        val monthlyDebtRow = assertIs<PosterLine.TextLine>(monthly[monthly.size - 2])
+        assertEquals("欠年费者", monthlyDebtRow.text)
+        assertEquals("欠 \$50.00", monthlyDebtRow.right)
+    }
+
+    @Test
+    fun `no membership debts means no 会员年费未付 section`() {
+        val lines = weeklyPosterLines(buildWeeklyPayload(fixture(), "s1"))
+        assertEquals(0, lines.filterIsInstance<PosterLine.TextLine>().count { it.text == "会员年费未付" })
     }
 }
