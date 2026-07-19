@@ -4,7 +4,8 @@ Native Android app (Kotlin + Jetpack Compose) for tracking a badminton group's s
 
 A ground-up rebuild of a WeChat mini program, structured KMP-ready (pure-Kotlin `domain/` module) so an iOS target can be added later. Data migrates between the two apps via a shared backup JSON contract.
 
-- Design: [docs/superpowers/specs/2026-07-11-android-app-design.md](docs/superpowers/specs/2026-07-11-android-app-design.md)
+- **Behavior reference (start here for how the app works): [docs/domain-reference.md](docs/domain-reference.md)** — the self-contained, up-to-date description of every domain rule, calculation, and screen behavior. Kept current with the code; no need to look at the original WeChat mini program.
+- Design history: [docs/superpowers/specs/2026-07-11-android-app-design.md](docs/superpowers/specs/2026-07-11-android-app-design.md) and the other dated specs in `docs/superpowers/specs/`.
 - Status: v1.0.0 released — see [Releases](https://github.com/maxwang/badmintion_android/releases) for a downloadable APK, or build your own below.
 
 ## Modules

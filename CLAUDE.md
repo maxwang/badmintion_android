@@ -4,8 +4,8 @@ Native Android rebuild of the badminton cost-sharing WeChat mini program. Owner:
 
 ## Source of truth
 
-- Product behavior: the WeChat mini program at `E:\Code\ai\wechat\badminton` (repo `badmintion_wechat`, branch `develop`). Its Node test suites (`tests/calc.test.js`, `tests/data.test.js`, `tests/report.test.js`) are the authoritative domain spec — when porting or in doubt, read them; do not rely on memory.
-- Architecture and milestones: `docs/superpowers/specs/2026-07-11-android-app-design.md`. Follow the milestone order; each milestone gets its own plan in `docs/superpowers/plans/`.
+- **Product behavior (current state): `docs/domain-reference.md`.** This is the self-contained, up-to-date description of every domain rule, mutator, calculation, backup schema detail, and app-layer behavior. It is maintained in lockstep with the code — when behavior changes, update the relevant section of that doc in the same change. Do not go back to the WeChat mini program (`E:\Code\ai\wechat\badminton`) to understand behavior; it was this app's origin but is no longer authoritative and may have diverged. If `docs/domain-reference.md` and the code ever disagree, the code (and its tests) win, and the doc is stale and needs fixing — not the other way around.
+- Architecture and milestones (historical): `docs/superpowers/specs/2026-07-11-android-app-design.md` and the other dated specs in `docs/superpowers/specs/`. These record the *why* behind each milestone's design decisions at the time; `docs/domain-reference.md` records the current *what*. Follow the milestone order for new work; each milestone gets its own plan in `docs/superpowers/plans/`.
 
 ## Hard rules
 
