@@ -122,6 +122,20 @@ fun HistoryScreen(
                     Text(p.desc, style = MaterialTheme.typography.bodySmall)
                 }
             }
+            item { Text("会员年费记录（点击可删除）", style = MaterialTheme.typography.titleMedium) }
+            items(rows.memberships, key = { "mf" + it.id }) { mf ->
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            action = HistoryAction.ConfirmDelete("会员年费") { vm.deleteMembershipFee(mf.id) }
+                        }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Text(mf.date, style = MaterialTheme.typography.titleSmall)
+                    Text(mf.desc, style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
     }
 

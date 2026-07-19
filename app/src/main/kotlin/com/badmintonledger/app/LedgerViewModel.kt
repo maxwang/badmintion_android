@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.badmintonledger.domain.backup.BackupCodec
 import com.badmintonledger.domain.backup.ImportResult
+import com.badmintonledger.domain.calc.membershipStatus
 import com.badmintonledger.domain.edit.EditResult
 import com.badmintonledger.domain.edit.SessionUpdate
 import com.badmintonledger.domain.model.Cents
@@ -13,6 +14,7 @@ import com.badmintonledger.domain.model.Config
 import com.badmintonledger.domain.model.Contribution
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
+import com.badmintonledger.domain.model.centsToDollars
 import com.badmintonledger.domain.model.dollarsToCents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +26,16 @@ import com.badmintonledger.domain.edit.addMember as domainAddMember
 import com.badmintonledger.domain.edit.addRateChange as domainAddRateChange
 import com.badmintonledger.domain.edit.addRefill as domainAddRefill
 import com.badmintonledger.domain.edit.addSession as domainAddSession
+import com.badmintonledger.domain.edit.chargeAnnualMembershipFee as domainChargeAnnualMembershipFee
+import com.badmintonledger.domain.edit.deleteMembershipFee as domainDeleteMembershipFee
 import com.badmintonledger.domain.edit.deletePayment as domainDeletePayment
 import com.badmintonledger.domain.edit.deleteRefill as domainDeleteRefill
 import com.badmintonledger.domain.edit.deleteSession as domainDeleteSession
 import com.badmintonledger.domain.edit.removeMember as domainRemoveMember
 import com.badmintonledger.domain.edit.renameMember as domainRenameMember
+import com.badmintonledger.domain.edit.setActive as domainSetActive
 import com.badmintonledger.domain.edit.setGuest as domainSetGuest
+import com.badmintonledger.domain.edit.setMembershipFeePaid as domainSetMembershipFeePaid
 import com.badmintonledger.domain.edit.settleDebtors as domainSettleDebtors
 import com.badmintonledger.domain.edit.updateSession as domainUpdateSession
 
@@ -37,6 +43,16 @@ sealed interface SaveSessionResult {
     data class Saved(val sessionId: String) : SaveSessionResult
 
     data class Rejected(val reason: String) : SaveSessionResult
+}
+
+sealed interface ChargeMembershipFeeResult {
+    data class Charged(
+        val chargedCount: Int,
+        val skippedCount: Int,
+        val perPersonDollars: String,
+    ) : ChargeMembershipFeeResult
+
+    data class Rejected(val reason: String) : ChargeMembershipFeeResult
 }
 
 @Suppress("TooManyFunctions")
@@ -92,6 +108,14 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     ) {
         val current = ledger.value ?: return
         persist(domainSetGuest(current, id, isGuest))
+    }
+
+    fun setActive(
+        id: String,
+        active: Boolean,
+    ) {
+        val current = ledger.value ?: return
+        persist(domainSetActive(current, id, active))
     }
 
     /** Returns null on success, or the refusal reason (member has records). */
@@ -263,6 +287,55 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     fun deletePayment(id: String) {
         val current = ledger.value ?: return
         persist(domainDeletePayment(current, id))
+    }
+
+    /** Bulk-bills [year]'s membership fee, splitting [totalDollars] evenly; persists it as the new default prefill. */
+    fun chargeAnnualMembershipFee(
+        year: Int,
+        totalDollars: Double?,
+        date: String,
+    ): ChargeMembershipFeeResult {
+        val current = ledger.value ?: return ChargeMembershipFeeResult.Rejected("数据加载中，请稍后再试")
+        val eligible = membershipStatus(current, year).eligible
+        val ids = List(eligible) { newId("mf") }
+        return when (val r = domainChargeAnnualMembershipFee(current, ids, year, totalDollars, date)) {
+            is EditResult.Ok -> {
+                val totalCents = dollarsToCents(totalDollars!!)
+                persist(r.data.copy(config = r.data.config.copy(membershipFee = Cents(totalCents))))
+                val perPersonCents = if (eligible > 0) totalCents / eligible else 0L
+                ChargeMembershipFeeResult.Charged(
+                    chargedCount = r.value.chargedNames.size,
+                    skippedCount = r.value.skippedNames.size,
+                    perPersonDollars = centsToDollars(perPersonCents),
+                )
+            }
+            is EditResult.Err -> ChargeMembershipFeeResult.Rejected(r.reason)
+        }
+    }
+
+    /** Marks every unpaid membership entry for each selected member paid (port of payment.js saveMembership). */
+    @Suppress("ReturnCount")
+    fun settleMembershipDebtors(
+        memberIds: List<String>,
+        date: String,
+    ): String? {
+        var doc = ledger.value ?: return "数据加载中，请稍后再试"
+        for (memberId in memberIds) {
+            val unpaidIds = doc.memberships.filter { it.memberId == memberId && it.paidDate == null }.map { it.id }
+            for (mfId in unpaidIds) {
+                when (val r = domainSetMembershipFeePaid(doc, mfId, true, date)) {
+                    is EditResult.Ok -> doc = r.data
+                    is EditResult.Err -> return r.reason
+                }
+            }
+        }
+        persist(doc)
+        return null
+    }
+
+    fun deleteMembershipFee(id: String) {
+        val current = ledger.value ?: return
+        persist(domainDeleteMembershipFee(current, id))
     }
 
     fun resetAllData() {
