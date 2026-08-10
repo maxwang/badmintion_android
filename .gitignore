@@ -26,3 +26,6 @@ badminton-backup-*.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Isolated worktrees for subagent-driven development
+.worktrees/
