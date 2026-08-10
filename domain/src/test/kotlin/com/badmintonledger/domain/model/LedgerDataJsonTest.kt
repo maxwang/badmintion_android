@@ -9,7 +9,7 @@ class LedgerDataJsonTest {
     private val backupJson =
         """
         {
-          "version": 3,
+          "version": 4,
           "members": [
             { "id": "A", "name": "阿安", "isGuest": false },
             { "id": "G", "name": "客串", "isGuest": true }
@@ -23,14 +23,15 @@ class LedgerDataJsonTest {
           "payments": [{ "id": "p1", "memberId": "G", "amount": 25.6, "date": "2026-07-05" }],
           "sessions": [{ "id": "s1", "date": "2026-07-04", "hours": 4, "rate": 24,
                          "factor": 0.8, "playerIds": ["A", "G"] }],
-          "memberships": [{ "id": "mf1", "memberId": "A", "year": 2026, "date": "2026-07-01", "amount": 25 }]
+          "memberships": [{ "id": "mf1", "memberId": "A", "year": 2026, "date": "2026-07-01", "amount": 25 }],
+          "transfers": [{ "id": "tr1", "fromMemberId": "A", "toMemberId": "G", "amount": 5, "date": "2026-07-06" }]
         }
         """.trimIndent()
 
     @Test
     fun `backup JSON decodes with dollar amounts becoming cents`() {
         val data = BackupCodec.decode(backupJson)
-        assertEquals(3, data.version)
+        assertEquals(4, data.version)
         assertEquals(listOf(RateChange("rt1", "2026-01-01", Cents(2400))), data.rates)
         assertEquals(Cents(60000), data.refills[0].contributions[0].amount)
         assertEquals(Cents(75000), data.refills[0].credit)
@@ -40,6 +41,7 @@ class LedgerDataJsonTest {
         assertEquals(0.8, data.sessions[0].factor)
         assertEquals(listOf("A", "G"), data.sessions[0].playerIds)
         assertEquals(Cents(2500), data.memberships[0].amount)
+        assertEquals(Transfer("tr1", "A", "G", Cents(500), "2026-07-06"), data.transfers[0])
     }
 
     @Test
@@ -50,13 +52,25 @@ class LedgerDataJsonTest {
     }
 
     @Test
-    fun `default LedgerData matches WeChat DEFAULT_DATA v3`() {
+    fun `default LedgerData matches WeChat DEFAULT_DATA v4`() {
         val d = LedgerData()
-        assertEquals(3, d.version)
+        assertEquals(4, d.version)
         assertEquals(Config(Cents(200000), Cents(250000), Cents(5000)), d.config)
         assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), d.rates)
         assertEquals(emptyList(), d.members)
         assertEquals(emptyList(), d.memberships)
+        assertEquals(emptyList(), d.transfers)
+    }
+
+    @Test
+    fun `v3 document decodes through migration gaining empty transfers`() {
+        val v3 =
+            """{"version":3,"members":[],"config":{"defaultPaid":2000,"defaultCredit":2500,"membershipFee":50},
+            "rates":[{"id":"rate_seed","date":"2000-01-01","rate":24}],
+            "refills":[],"payments":[],"sessions":[],"memberships":[]}"""
+        val d = BackupCodec.decode(v3)
+        assertEquals(4, d.version)
+        assertEquals(emptyList(), d.transfers)
     }
 
     @Test
@@ -70,10 +84,11 @@ class LedgerDataJsonTest {
             """{"version":1,"members":[],"config":{"defaultRate":30,"defaultPaid":2000,
             "defaultCredit":2500},"refills":[],"payments":[],"sessions":[]}"""
         val d = BackupCodec.decode(v1)
-        assertEquals(3, d.version)
+        assertEquals(4, d.version)
         assertEquals(Config(Cents(200000), Cents(250000), Cents(5000)), d.config)
         assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(3000))), d.rates)
         assertEquals(emptyList(), d.memberships)
+        assertEquals(emptyList(), d.transfers)
     }
 
     @Test
@@ -83,8 +98,9 @@ class LedgerDataJsonTest {
             "rates":[{"id":"rate_seed","date":"2000-01-01","rate":24}],
             "refills":[],"payments":[],"sessions":[]}"""
         val d = BackupCodec.decode(v2)
-        assertEquals(3, d.version)
+        assertEquals(4, d.version)
         assertEquals(Cents(5000), d.config.membershipFee)
         assertEquals(emptyList(), d.memberships)
+        assertEquals(emptyList(), d.transfers)
     }
 }

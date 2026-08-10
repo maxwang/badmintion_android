@@ -73,7 +73,7 @@ object BackupCodec {
     fun validate(root: JsonElement): ImportResult {
         val obj = root as? JsonObject ?: return ImportResult.Err("备份文件格式不正确")
         val version = (obj["version"] as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
-        if (version != 1 && version != 2 && version != 3) {
+        if (version != 1 && version != 2 && version != 3 && version != 4) {
             return ImportResult.Err("备份文件版本不兼容")
         }
         val members = obj["members"] as? JsonArray ?: return ImportResult.Err("备份文件缺少成员数据")
@@ -125,6 +125,18 @@ object BackupCodec {
                     if (mfo.stringOrNull("memberId") !in ids) return ImportResult.Err("备份数据引用了不存在的成员")
                 }
             }
+            if (version == 4) {
+                val transfers = obj["transfers"] as? JsonArray ?: return ImportResult.Err("转账数据不完整")
+                for (tr in transfers) {
+                    val tro = tr as? JsonObject ?: return ImportResult.Err("转账数据不完整")
+                    if (tro.stringOrNull("id").isNullOrEmpty() || !tro.dateOk("date") || !tro.positive("amount")) {
+                        return ImportResult.Err("转账数据不完整")
+                    }
+                    if (tro.stringOrNull("fromMemberId") !in ids || tro.stringOrNull("toMemberId") !in ids) {
+                        return ImportResult.Err("备份数据引用了不存在的成员")
+                    }
+                }
+            }
         }
         for (r in refills) {
             val ro = r as? JsonObject ?: return ImportResult.Err("充值数据不完整")
@@ -168,14 +180,14 @@ object BackupCodec {
         )
     }
 
-    private fun migrate(obj: JsonObject): JsonObject = migrateToV3(migrateToV2(obj))
+    private fun migrate(obj: JsonObject): JsonObject = migrateToV4(migrateToV3(migrateToV2(obj)))
 
     // v1 → v2 at the JSON layer: the typed model has no defaultRate and would silently
     // default a missing rates key, so migration must happen BEFORE decode.
     @Suppress("ReturnCount")
     private fun migrateToV2(obj: JsonObject): JsonObject {
         val version = (obj["version"] as? JsonPrimitive)?.intOrNull
-        if (version == 2) return obj
+        if (version != 1) return obj
         val config = obj["config"] as? JsonObject ?: return obj
         val defaultRate = config["defaultRate"] ?: return obj
         return buildJsonObject {
@@ -215,7 +227,7 @@ object BackupCodec {
     @Suppress("ReturnCount")
     private fun migrateToV3(obj: JsonObject): JsonObject {
         val version = (obj["version"] as? JsonPrimitive)?.intOrNull
-        if (version == 3) return obj
+        if (version != 2) return obj
         val config = obj["config"] as? JsonObject ?: return obj
         return buildJsonObject {
             obj.forEach { (k, v) ->
@@ -233,6 +245,17 @@ object BackupCodec {
                 }
             }
             put("memberships", buildJsonArray {})
+        }
+    }
+
+    // v3 → v4 at the JSON layer: same reasoning as the earlier links in the chain.
+    @Suppress("ReturnCount")
+    private fun migrateToV4(obj: JsonObject): JsonObject {
+        val version = (obj["version"] as? JsonPrimitive)?.intOrNull
+        if (version == 4) return obj
+        return buildJsonObject {
+            obj.forEach { (k, v) -> put(k, if (k == "version") JsonPrimitive(4) else v) }
+            put("transfers", buildJsonArray {})
         }
     }
 
