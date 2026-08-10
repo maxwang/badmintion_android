@@ -27,7 +27,7 @@ fun sessionShares(s: Session): SessionShares {
     return SessionShares(total, shares)
 }
 
-// Balance per member (cents): contributions + cash payments - session shares.
+// Balance per member (cents): contributions + cash payments - session shares - transfers out + transfers in.
 // Positive = money left; negative = owes. excludeSessionId gives the balance "before" that week.
 fun memberBalancesCents(
     data: LedgerData,
@@ -39,6 +39,10 @@ fun memberBalancesCents(
         r.contributions.forEach { c -> bal[c.memberId] = (bal[c.memberId] ?: 0L) + c.amount.value }
     }
     data.payments.forEach { p -> bal[p.memberId] = (bal[p.memberId] ?: 0L) + p.amount.value }
+    data.transfers.forEach { t ->
+        bal[t.fromMemberId] = (bal[t.fromMemberId] ?: 0L) - t.amount.value
+        bal[t.toMemberId] = (bal[t.toMemberId] ?: 0L) + t.amount.value
+    }
     data.sessions.forEach { s ->
         if (s.id == excludeSessionId) return@forEach
         sessionShares(s).shares.forEach { (id, share) -> bal[id] = (bal[id] ?: 0L) - share }
