@@ -7,6 +7,7 @@ import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.Payment
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
+import com.badmintonledger.domain.model.Transfer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -69,5 +70,21 @@ class HistoryTest {
         assertEquals(listOf("mf2", "mf1"), h.memberships.map { it.id })
         assertEquals("阿安 2026年度 $25.00（已付）", h.memberships[0].desc)
         assertEquals("阿安 2025年度 $50.00（未付）", h.memberships[1].desc)
+    }
+
+    @Test
+    fun `transfers listed newest-first, unfiltered by cutoff, with from-to description`() {
+        val data =
+            fixture().copy(
+                transfers =
+                    listOf(
+                        Transfer("t1", "A", "G", Cents(500), "2020-01-01"),
+                        Transfer("t2", "G", "A", Cents(2560), "2026-07-06"),
+                    ),
+            )
+        val h = buildHistoryRows(data, cutoff = "2025-07-15") // even before the cutoff, t1 still shows
+        assertEquals(listOf("t2", "t1"), h.transfers.map { it.id })
+        assertEquals("客串 → 阿安 $25.6", h.transfers[0].desc) // rawDollars trims trailing zeros, like payments' "$25.6"
+        assertEquals("阿安 → 客串 $5", h.transfers[1].desc)
     }
 }
