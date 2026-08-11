@@ -76,7 +76,8 @@ fun TransferScreen(
     ) { padding ->
         val current = data ?: return@Scaffold
         val candidates = current.members.filter { !it.isGuest }
-        val fromBalanceCents = fromMember?.let { memberBalancesCents(current)[it.id] ?: 0L } ?: 0L
+        val balancesCents = remember(current) { memberBalancesCents(current) }
+        val fromBalanceCents = fromMember?.let { balancesCents[it.id] ?: 0L } ?: 0L
 
         LaunchedEffect(fromMember) {
             fromMember?.let { amount = dollarsText(maxOf(fromBalanceCents, 0L)) }

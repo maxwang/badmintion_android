@@ -2,6 +2,7 @@ package com.badmintonledger.domain.backup
 
 import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.RateChange
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -290,7 +291,7 @@ class BackupCodecTest {
     }
 
     @Test
-    fun `v1 and v2 import migrate through to v3 in one decode`() {
+    fun `v1 and v2 import migrate through v3 to v4 in one decode`() {
         val r1 = BackupCodec.validate(fixture()) // v1 fixture
         assertIs<ImportResult.Ok>(r1)
         assertEquals(4, r1.data.version)
@@ -392,6 +393,11 @@ class BackupCodecTest {
         assertIs<ImportResult.Ok>(r3)
         assertEquals(4, r3.data.version)
         assertEquals(emptyList(), r3.data.transfers)
+        assertEquals(1, r3.data.memberships.size)
+        assertEquals(
+            Membership("mf1", "A", 2026, "2026-07-01", Cents(5000)),
+            r3.data.memberships[0],
+        )
 
         val out = BackupCodec.encode(r1.data)
         assertTrue(out.contains("\"version\":4") || out.contains("\"version\": 4"))
