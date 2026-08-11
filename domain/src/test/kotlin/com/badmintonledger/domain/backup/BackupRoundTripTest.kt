@@ -31,10 +31,11 @@ class BackupRoundTripTest {
     fun `import compute re-export preserves the ledger`() {
         assertIs<ImportResult.Ok>(BackupCodec.validate(backupJson))
         val data = BackupCodec.decode(backupJson)
-        assertEquals(3, data.version)
+        assertEquals(4, data.version)
         assertEquals(Cents(2400), data.rates.single().rate)
         assertEquals(emptyList(), data.memberships)
         assertEquals(Cents(5000), data.config.membershipFee)
+        assertEquals(emptyList(), data.transfers)
 
         // session 76.80 split two ways = 38.40 each
         val bal = memberBalancesCents(data)

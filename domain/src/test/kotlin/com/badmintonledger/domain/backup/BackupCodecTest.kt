@@ -2,6 +2,7 @@ package com.badmintonledger.domain.backup
 
 import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
+import com.badmintonledger.domain.model.Membership
 import com.badmintonledger.domain.model.RateChange
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -67,6 +68,32 @@ private fun fixtureV2(ratesJson: String = """[{"id":"rt1","date":"2026-01-01","r
     "sessions":[{"id":"s1","date":"2026-07-04","hours":4,"rate":24,
         "factor":0.8,"playerIds":["A","G"]}]}"""
 
+@Suppress("LongParameterList")
+private fun fixtureV4(
+    transfersJson: String = """[{"id":"tr1","fromMemberId":"A","toMemberId":"G","amount":5,"date":"2026-07-06"}]""",
+    membershipsJson: String = """[{"id":"mf1","memberId":"A","year":2026,"date":"2026-07-01","amount":50}]""",
+    membersJson: String = """[
+        {"id":"A","name":"阿安","isGuest":false},
+        {"id":"G","name":"客串","isGuest":true}
+    ]""",
+    configJson: String = """{"defaultPaid":2000,"defaultCredit":2500,"membershipFee":50}""",
+): String =
+    """{"version":4,"members":$membersJson,"config":$configJson,
+    "rates":[{"id":"rt1","date":"2026-01-01","rate":24}],
+    "refills":[{"id":"r1","date":"2026-07-01","paid":600,"credit":750,
+        "contributions":[{"memberId":"A","amount":600}]}],
+    "payments":[{"id":"p1","memberId":"G","amount":25.6,"date":"2026-07-05"}],
+    "sessions":[{"id":"s1","date":"2026-07-04","hours":4,"rate":24,
+        "factor":0.8,"playerIds":["A","G"]}],
+    "memberships":$membershipsJson,
+    "transfers":$transfersJson}"""
+
+private const val V4_NO_TRANSFERS =
+    """{"version":4,"members":[{"id":"A","name":"阿安","isGuest":false}],
+    "config":{"defaultPaid":2000,"defaultCredit":2500,"membershipFee":50},
+    "rates":[{"id":"rt1","date":"2026-01-01","rate":24}],
+    "refills":[],"payments":[],"sessions":[],"memberships":[]}"""
+
 class BackupCodecTest {
     @Test
     fun `complete backup passes with a summary and the decoded document`() {
@@ -95,18 +122,13 @@ class BackupCodecTest {
         assertIs<ImportResult.Err>(BackupCodec.validate("not json at all"))
         assertEquals(
             ImportResult.Err("备份文件版本不兼容"),
-            BackupCodec.validate(fixture(version = "4")),
+            BackupCodec.validate(fixture(version = "5")),
         )
-        // fixture() is a v1 shape (no "rates" key); version 2 or 3 alone doesn't fail, but the
+        // fixture() is a v1 shape (no "rates" key); version 2/3/4 alone doesn't fail, but the
         // missing rate history does.
-        assertEquals(
-            ImportResult.Err("单价历史数据不完整"),
-            BackupCodec.validate(fixture(version = "2")),
-        )
-        assertEquals(
-            ImportResult.Err("单价历史数据不完整"),
-            BackupCodec.validate(fixture(version = "3")),
-        )
+        assertEquals(ImportResult.Err("单价历史数据不完整"), BackupCodec.validate(fixture(version = "2")))
+        assertEquals(ImportResult.Err("单价历史数据不完整"), BackupCodec.validate(fixture(version = "3")))
+        assertEquals(ImportResult.Err("单价历史数据不完整"), BackupCodec.validate(fixture(version = "4")))
     }
 
     @Test
@@ -269,22 +291,24 @@ class BackupCodecTest {
     }
 
     @Test
-    fun `v1 and v2 import migrate through to v3 in one decode`() {
+    fun `v1 and v2 import migrate through v3 to v4 in one decode`() {
         val r1 = BackupCodec.validate(fixture()) // v1 fixture
         assertIs<ImportResult.Ok>(r1)
-        assertEquals(3, r1.data.version)
+        assertEquals(4, r1.data.version)
         assertEquals(listOf(RateChange("rate_seed", "2000-01-01", Cents(2400))), r1.data.rates)
         assertEquals(emptyList(), r1.data.memberships)
         assertEquals(Cents(5000), r1.data.config.membershipFee)
+        assertEquals(emptyList(), r1.data.transfers)
         val out = BackupCodec.encode(r1.data)
-        assertTrue(out.contains("\"version\":3") || out.contains("\"version\": 3"))
+        assertTrue(out.contains("\"version\":4") || out.contains("\"version\": 4"))
         assertIs<ImportResult.Ok>(BackupCodec.validate(out))
 
         val r2 = BackupCodec.validate(fixtureV2()) // v2 fixture
         assertIs<ImportResult.Ok>(r2)
-        assertEquals(3, r2.data.version)
+        assertEquals(4, r2.data.version)
         assertEquals(emptyList(), r2.data.memberships)
         assertEquals(Cents(5000), r2.data.config.membershipFee)
+        assertEquals(emptyList(), r2.data.transfers)
     }
 
     @Test
@@ -328,5 +352,55 @@ class BackupCodecTest {
         val badActive = """[{"id":"A","name":"阿安","isGuest":false,"active":"no"},
             {"id":"G","name":"客串","isGuest":true}]"""
         assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV3(membersJson = badActive)))
+    }
+
+    @Test
+    fun `v4 backup passes, missing or broken transfer data rejected`() {
+        val ok = BackupCodec.validate(fixtureV4())
+        assertIs<ImportResult.Ok>(ok)
+        assertEquals(ImportResult.Summary(members = 2, sessions = 1, refills = 1), (ok as ImportResult.Ok).summary)
+
+        assertEquals(ImportResult.Err("转账数据不完整"), BackupCodec.validate(V4_NO_TRANSFERS))
+        val zeroAmount = """[{"id":"tr1","fromMemberId":"A","toMemberId":"G","amount":0,"date":"2026-07-06"}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV4(transfersJson = zeroAmount)))
+        val badDate = """[{"id":"tr1","fromMemberId":"A","toMemberId":"G","amount":5,"date":"07/06/2026"}]"""
+        assertIs<ImportResult.Err>(BackupCodec.validate(fixtureV4(transfersJson = badDate)))
+        val ghostFrom = """[{"id":"tr1","fromMemberId":"X","toMemberId":"G","amount":5,"date":"2026-07-06"}]"""
+        assertEquals(
+            ImportResult.Err("备份数据引用了不存在的成员"),
+            BackupCodec.validate(fixtureV4(transfersJson = ghostFrom)),
+        )
+        val ghostTo = """[{"id":"tr1","fromMemberId":"A","toMemberId":"X","amount":5,"date":"2026-07-06"}]"""
+        assertEquals(
+            ImportResult.Err("备份数据引用了不存在的成员"),
+            BackupCodec.validate(fixtureV4(transfersJson = ghostTo)),
+        )
+    }
+
+    @Test
+    fun `v1 through v3 import migrate to v4 in one decode`() {
+        val r1 = BackupCodec.validate(fixture()) // v1 fixture
+        assertIs<ImportResult.Ok>(r1)
+        assertEquals(4, r1.data.version)
+        assertEquals(emptyList(), r1.data.transfers)
+
+        val r2 = BackupCodec.validate(fixtureV2()) // v2 fixture
+        assertIs<ImportResult.Ok>(r2)
+        assertEquals(4, r2.data.version)
+        assertEquals(emptyList(), r2.data.transfers)
+
+        val r3 = BackupCodec.validate(fixtureV3()) // v3 fixture
+        assertIs<ImportResult.Ok>(r3)
+        assertEquals(4, r3.data.version)
+        assertEquals(emptyList(), r3.data.transfers)
+        assertEquals(1, r3.data.memberships.size)
+        assertEquals(
+            Membership("mf1", "A", 2026, "2026-07-01", Cents(5000)),
+            r3.data.memberships[0],
+        )
+
+        val out = BackupCodec.encode(r1.data)
+        assertTrue(out.contains("\"version\":4") || out.contains("\"version\": 4"))
+        assertIs<ImportResult.Ok>(BackupCodec.validate(out))
     }
 }

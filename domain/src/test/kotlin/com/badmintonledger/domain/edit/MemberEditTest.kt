@@ -4,6 +4,7 @@ import com.badmintonledger.domain.model.Cents
 import com.badmintonledger.domain.model.LedgerData
 import com.badmintonledger.domain.model.Member
 import com.badmintonledger.domain.model.Membership
+import com.badmintonledger.domain.model.Transfer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -41,6 +42,15 @@ class MemberEditTest {
         val data =
             LedgerData(members = listOf(Member("A", "阿安", false)))
                 .copy(memberships = listOf(Membership("mf1", "A", 2026, "2026-07-01", Cents(5000))))
+        assertEquals(true, memberReferenced(data, "A"))
+        assertIs<EditResult.Err>(removeMember(data, "A"))
+    }
+
+    @Test
+    fun `memberReferenced and hard-delete are blocked by a transfer entry alone`() {
+        val data =
+            LedgerData(members = listOf(Member("A", "阿安", false), Member("B", "小明", false)))
+                .copy(transfers = listOf(Transfer("t1", "B", "A", Cents(1000), "2026-07-01")))
         assertEquals(true, memberReferenced(data, "A"))
         assertIs<EditResult.Err>(removeMember(data, "A"))
     }

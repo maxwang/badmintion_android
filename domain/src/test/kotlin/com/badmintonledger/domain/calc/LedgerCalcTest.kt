@@ -9,6 +9,7 @@ import com.badmintonledger.domain.model.Payment
 import com.badmintonledger.domain.model.RateChange
 import com.badmintonledger.domain.model.Refill
 import com.badmintonledger.domain.model.Session
+import com.badmintonledger.domain.model.Transfer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -259,5 +260,28 @@ class LedgerCalcTest {
             )
         assertEquals(MembershipStatus(eligible = 2, charged = 2, paid = 1), membershipStatus(data, 2026))
         assertEquals(MembershipStatus(eligible = 2, charged = 0, paid = 0), membershipStatus(data, 2025))
+    }
+
+    @Test
+    fun `memberBalancesCents includes transfers - sender down, receiver up, sum and pool unaffected`() {
+        val data =
+            LedgerData(
+                members = listOf(Member("A", "阿安", false), Member("B", "小波", false)),
+                refills =
+                    listOf(
+                        Refill(
+                            "r1",
+                            "2026-07-01",
+                            Cents(10000),
+                            Cents(12500),
+                            listOf(Contribution("A", Cents(10000))),
+                        ),
+                    ),
+                transfers = listOf(Transfer("t1", "A", "B", Cents(4000), "2026-07-05")),
+            )
+        val bal = memberBalancesCents(data)
+        assertEquals(6000L, bal["A"]) // 10000 contributed - 4000 sent
+        assertEquals(4000L, bal["B"]) // 4000 received
+        assertEquals(12500L, poolRemainingCents(data)) // no sessions yet; pool = credit only, transfer-blind
     }
 }

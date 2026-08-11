@@ -22,6 +22,15 @@ data class Membership(
 )
 
 @Serializable
+data class Transfer(
+    val id: String,
+    val fromMemberId: String,
+    val toMemberId: String,
+    val amount: Cents,
+    val date: String,
+)
+
+@Serializable
 data class Contribution(val memberId: String, val amount: Cents)
 
 @Serializable
@@ -48,7 +57,7 @@ data class Session(
 
 @Serializable
 data class LedgerData(
-    val version: Int = 3,
+    val version: Int = 4,
     val members: List<Member> = emptyList(),
     val config: Config =
         Config(
@@ -61,4 +70,5 @@ data class LedgerData(
     val payments: List<Payment> = emptyList(),
     val sessions: List<Session> = emptyList(),
     val memberships: List<Membership> = emptyList(),
+    val transfers: List<Transfer> = emptyList(),
 )

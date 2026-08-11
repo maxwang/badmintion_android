@@ -136,6 +136,20 @@ fun HistoryScreen(
                     Text(mf.desc, style = MaterialTheme.typography.bodySmall)
                 }
             }
+            item { Text("转账记录（点击可删除）", style = MaterialTheme.typography.titleMedium) }
+            items(rows.transfers, key = { "t" + it.id }) { t ->
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            action = HistoryAction.ConfirmDelete("转账") { vm.deleteTransfer(t.id) }
+                        }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Text(t.date, style = MaterialTheme.typography.titleSmall)
+                    Text(t.desc, style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
     }
 

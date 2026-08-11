@@ -26,11 +26,13 @@ import com.badmintonledger.domain.edit.addMember as domainAddMember
 import com.badmintonledger.domain.edit.addRateChange as domainAddRateChange
 import com.badmintonledger.domain.edit.addRefill as domainAddRefill
 import com.badmintonledger.domain.edit.addSession as domainAddSession
+import com.badmintonledger.domain.edit.addTransfer as domainAddTransfer
 import com.badmintonledger.domain.edit.chargeAnnualMembershipFee as domainChargeAnnualMembershipFee
 import com.badmintonledger.domain.edit.deleteMembershipFee as domainDeleteMembershipFee
 import com.badmintonledger.domain.edit.deletePayment as domainDeletePayment
 import com.badmintonledger.domain.edit.deleteRefill as domainDeleteRefill
 import com.badmintonledger.domain.edit.deleteSession as domainDeleteSession
+import com.badmintonledger.domain.edit.deleteTransfer as domainDeleteTransfer
 import com.badmintonledger.domain.edit.removeMember as domainRemoveMember
 import com.badmintonledger.domain.edit.renameMember as domainRenameMember
 import com.badmintonledger.domain.edit.setActive as domainSetActive
@@ -336,6 +338,29 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteMembershipFee(id: String) {
         val current = ledger.value ?: return
         persist(domainDeleteMembershipFee(current, id))
+    }
+
+    /** Returns null on success, or the refusal reason. Amount arrives in dollars from the form. */
+    fun addTransfer(
+        fromMemberId: String,
+        toMemberId: String,
+        amountDollars: Double?,
+        date: String,
+    ): String? {
+        val current = ledger.value ?: return "数据加载中，请稍后再试"
+        val amountCents = amountDollars?.let(::dollarsToCents)
+        return when (val r = domainAddTransfer(current, newId("t"), fromMemberId, toMemberId, amountCents, date)) {
+            is EditResult.Ok -> {
+                persist(r.data)
+                null
+            }
+            is EditResult.Err -> r.reason
+        }
+    }
+
+    fun deleteTransfer(id: String) {
+        val current = ledger.value ?: return
+        persist(domainDeleteTransfer(current, id))
     }
 
     fun resetAllData() {

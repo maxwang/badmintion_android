@@ -38,7 +38,8 @@ fun memberReferenced(
     data.sessions.any { id in it.playerIds } ||
         data.payments.any { it.memberId == id } ||
         data.refills.any { r -> r.contributions.any { it.memberId == id } } ||
-        data.memberships.any { it.memberId == id }
+        data.memberships.any { it.memberId == id } ||
+        data.transfers.any { it.fromMemberId == id || it.toMemberId == id }
 
 fun removeMember(
     data: LedgerData,
