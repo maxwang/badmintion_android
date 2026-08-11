@@ -21,6 +21,7 @@ fun AppNav(vm: LedgerViewModel = viewModel()) {
                 onRecordSession = { nav.navigate("session") { launchSingleTop = true } },
                 onOpenRefill = { nav.navigate("refill") { launchSingleTop = true } },
                 onOpenPayment = { nav.navigate("payment") { launchSingleTop = true } },
+                onOpenTransfer = { nav.navigate("transfer") { launchSingleTop = true } },
                 onOpenReport = { nav.navigate("report") { launchSingleTop = true } },
                 onOpenHistory = { nav.navigate("history") { launchSingleTop = true } },
             )
@@ -56,6 +57,9 @@ fun AppNav(vm: LedgerViewModel = viewModel()) {
         }
         composable("payment") {
             PaymentScreen(vm = vm, onBack = { nav.popBackStack() })
+        }
+        composable("transfer") {
+            TransferScreen(vm = vm, onBack = { nav.popBackStack() })
         }
         composable(
             route = "report?sessionId={sessionId}",

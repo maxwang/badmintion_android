@@ -43,6 +43,7 @@ fun HomeScreen(
     onRecordSession: () -> Unit,
     onOpenRefill: () -> Unit,
     onOpenPayment: () -> Unit,
+    onOpenTransfer: () -> Unit,
     onOpenReport: () -> Unit,
     onOpenHistory: () -> Unit,
 ) {
@@ -88,6 +89,7 @@ fun HomeScreen(
                     Button(onClick = onRecordSession) { Text("记录本周") }
                     Button(onClick = onOpenRefill) { Text("充值") }
                     Button(onClick = onOpenPayment) { Text("收款") }
+                    OutlinedButton(onClick = onOpenTransfer) { Text("转账") }
                     OutlinedButton(onClick = onOpenReport) { Text("报告") }
                     OutlinedButton(onClick = onOpenHistory) { Text("历史") }
                 }
